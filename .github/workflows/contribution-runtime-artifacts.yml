@@ -1,0 +1,108 @@
+name: Build contribution runtime artifacts
+on:
+  push:
+    branches:
+      - validation/runtime-artifacts-20261109
+permissions:
+  contents: read
+jobs:
+  artifacts:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Runtime artifacts ${{ matrix.number }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - number: 1
+            sha: 74fc454bc8e12f0b25dca98a10b1a372b067ee3e
+          - number: 2
+            sha: 903a1c23ba5922362ca22227461b82dce7e2d3a8
+          - number: 3
+            sha: d08898368bb838b7dd738a9900fe5cdd2100bd70
+          - number: 4
+            sha: 032a1522f435fce029e6021ec54a0bea3c1d0eb9
+          - number: 5
+            sha: 7f7c837ed428f9091ae74bd090e983f2f1e296cd
+          - number: 6
+            sha: a85128088209d1358d0144605d123c52664dbcc4
+          - number: 7
+            sha: b5698e827b6c700d932f13597086e22026167c29
+          - number: 8
+            sha: cc4413722d92a0c67e2bab7488231931465ad760
+          - number: 9
+            sha: 38e6e76f094710518182267bea11ad7a6b3a9344
+          - number: 10
+            sha: 3296271886b77e44cedb937b9f2bde493f843358
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: oven-sh/setup-bun@v2
+      - name: Install build dependencies
+        run: npm install --no-audit --no-fund
+      - name: Build contribution
+        run: npm run build
+      - name: Preserve generated runtime outputs
+        env:
+          CONTRIBUTION_SHA: ${{ matrix.sha }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
+          import { dirname, join } from 'node:path';
+          import { execFileSync } from 'node:child_process';
+          import { createHash } from 'node:crypto';
+          const sha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+          if (sha !== process.env.CONTRIBUTION_SHA) throw new Error('Unexpected source revision');
+          const outputDir = join(process.env.RUNNER_TEMP, 'contribution-built-target');
+          const paths = execFileSync('git', ['ls-files', '-z', 'plugin'], { encoding: 'utf8' }).split('\0').filter(path => /\.(?:cjs|js|mjs|map|html)$/.test(path) && /^(?:plugin\/scripts\/|plugin\/sqlite\/|plugin\/ui\/|plugin\/skills\/request-progress\/scripts\/)/.test(path));
+          const entries = [];
+          for (const path of paths) {
+            const data = readFileSync(path);
+            const output = join(outputDir, path);
+            mkdirSync(dirname(output), { recursive: true });
+            copyFileSync(path, output);
+            entries.push({ path, size: data.length, sha256: createHash('sha256').update(data).digest('hex') });
+          }
+          writeFileSync(join(outputDir, 'manifest.json'), JSON.stringify({ source: sha, entries }));
+          NODE
+      - name: Build the common source baseline with the same dependencies
+        run: |
+          git fetch --no-tags --depth=1 origin 989a98a2fb7978354497df46c4e17101f54ba9a3
+          git reset --hard 989a98a2fb7978354497df46c4e17101f54ba9a3
+          npm run build
+      - name: Store only runtime outputs changed by this contribution
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONTRIBUTION_NUMBER: ${{ matrix.number }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, existsSync } from 'node:fs';
+          import { join } from 'node:path';
+          import { createHash } from 'node:crypto';
+          const outputDir = join(process.env.RUNNER_TEMP, 'contribution-built-target');
+          const manifest = JSON.parse(readFileSync(join(outputDir, 'manifest.json'), 'utf8'));
+          const changed = [];
+          for (const entry of manifest.entries) {
+            const target = readFileSync(join(outputDir, entry.path));
+            const baseline = existsSync(entry.path) ? readFileSync(entry.path) : null;
+            if (baseline && target.equals(baseline)) continue;
+            const response = await fetch('https://api.github.com/repos/Afloat16/claude-mem/git/blobs', {
+              method: 'POST',
+              headers: { Authorization: 'Bearer ' + process.env.GH_TOKEN, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28' },
+              body: JSON.stringify({ content: target.toString('base64'), encoding: 'base64' }),
+            });
+            const result = await response.json();
+            if (!response.ok || !/^[0-9a-f]{40}$/.test(result.sha)) throw new Error('Git blob storage failed: ' + response.status + ' ' + (result.message || 'invalid result'));
+            changed.push({ ...entry, blob: result.sha, baselineSha256: baseline ? createHash('sha256').update(baseline).digest('hex') : null });
+          }
+          console.log('CONTRIBUTION_RUNTIME_META ' + JSON.stringify({ number: Number(process.env.CONTRIBUTION_NUMBER), source: manifest.source, baseline: '989a98a2fb7978354497df46c4e17101f54ba9a3', changed }));
+          NODE
