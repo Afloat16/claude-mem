@@ -1,0 +1,125 @@
+name: Native parser L0 through L2 gates
+on:
+  push:
+    branches:
+      - validation/native-format-gates-20261109
+permissions:
+  contents: read
+jobs:
+  native-gates:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Native parser layer, lock, secret and WebAssembly checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 14b61bb39ae47a4ab1a2b8488fee673a0a02a395
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: contribution-formats
+          cache-on-failure: 'true'
+      - name: Native 1 - import-library-slots
+        if: always()
+        run: |
+          git fetch --no-tags --depth=1 origin 14b61bb39ae47a4ab1a2b8488fee673a0a02a395
+          git checkout --detach --force 14b61bb39ae47a4ab1a2b8488fee673a0a02a395
+          test "$(git rev-parse HEAD)" = "14b61bb39ae47a4ab1a2b8488fee673a0a02a395"
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Native 2 - elf-core-path-cursor
+        if: always()
+        run: |
+          git fetch --no-tags --depth=1 origin 31727d965106c62e552d901be3f1e4710fc0030a
+          git checkout --detach --force 31727d965106c62e552d901be3f1e4710fc0030a
+          test "$(git rev-parse HEAD)" = "31727d965106c62e552d901be3f1e4710fc0030a"
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Native 3 - elf-partial-section-symbols
+        if: always()
+        run: |
+          git fetch --no-tags --depth=1 origin 4e16e2f3572c5e56711a56e872d77ff848ab1678
+          git checkout --detach --force 4e16e2f3572c5e56711a56e872d77ff848ab1678
+          test "$(git rev-parse HEAD)" = "4e16e2f3572c5e56711a56e872d77ff848ab1678"
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Native 4 - elf-version-section-bounds
+        if: always()
+        run: |
+          git fetch --no-tags --depth=1 origin 99df6a3f90b8feb52cb0949ac935ced6881379ed
+          git checkout --detach --force 99df6a3f90b8feb52cb0949ac935ced6881379ed
+          test "$(git rev-parse HEAD)" = "99df6a3f90b8feb52cb0949ac935ced6881379ed"
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Native 5 - pe-import-directory-bounds
+        if: always()
+        run: |
+          git fetch --no-tags --depth=1 origin 7f3a9ba44bc77f949221d03c4b040473f4b4f166
+          git checkout --detach --force 7f3a9ba44bc77f949221d03c4b040473f4b4f166
+          test "$(git rev-parse HEAD)" = "7f3a9ba44bc77f949221d03c4b040473f4b4f166"
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Native 7 - pe-export-work-budget
+        if: always()
+        run: |
+          git fetch --no-tags --depth=1 origin 0c7d16657e98343eaca1b7ac0c13108d04123c63
+          git checkout --detach --force 0c7d16657e98343eaca1b7ac0c13108d04123c63
+          test "$(git rev-parse HEAD)" = "0c7d16657e98343eaca1b7ac0c13108d04123c63"
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Native 8 - macho-thread-state
+        if: always()
+        run: |
+          git fetch --no-tags --depth=1 origin cb87e7f82d569c88c3b6bff84d60bb11d0b6f540
+          git checkout --detach --force cb87e7f82d569c88c3b6bff84d60bb11d0b6f540
+          test "$(git rev-parse HEAD)" = "cb87e7f82d569c88c3b6bff84d60bb11d0b6f540"
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Native 9 - macho-indirect-global-budget
+        if: always()
+        run: |
+          git fetch --no-tags --depth=1 origin 7fdf6a0ac3bee117e66fd7f7b3275a37569a248c
+          git checkout --detach --force 7fdf6a0ac3bee117e66fd7f7b3275a37569a248c
+          test "$(git rev-parse HEAD)" = "7fdf6a0ac3bee117e66fd7f7b3275a37569a248c"
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Native 10 - objc-method-record-stride
+        if: always()
+        run: |
+          git fetch --no-tags --depth=1 origin aaaac76ed1de9dda750128308f8fed0f6bce2457
+          git checkout --detach --force aaaac76ed1de9dda750128308f8fed0f6bce2457
+          test "$(git rev-parse HEAD)" = "aaaac76ed1de9dda750128308f8fed0f6bce2457"
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+          git diff --exit-code -- Cargo.lock
