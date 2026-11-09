@@ -1,0 +1,120 @@
+name: Final independent format verification
+on:
+  push:
+    branches:
+      - validation/final-formats-20261109
+permissions:
+  contents: read
+jobs:
+  formats:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Final ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - name: native-elf-partial-symbols
+            sha: 4e16e2f3572c5e56711a56e872d77ff848ab1678
+            phase: fix
+            tests: ''
+          - name: native-pe-import-bounds
+            sha: 7f3a9ba44bc77f949221d03c4b040473f4b4f166
+            phase: fix
+            tests: ''
+          - name: native-pe-export-budget
+            sha: 0c7d16657e98343eaca1b7ac0c13108d04123c63
+            phase: fix
+            tests: ''
+          - name: native-macho-thread
+            sha: cb87e7f82d569c88c3b6bff84d60bb11d0b6f540
+            phase: fix
+            tests: ''
+          - name: native-macho-indirect-budget
+            sha: 7fdf6a0ac3bee117e66fd7f7b3275a37569a248c
+            phase: fix
+            tests: ''
+          - name: native-objc-stride
+            sha: aaaac76ed1de9dda750128308f8fed0f6bce2457
+            phase: fix
+            tests: ''
+          - name: archive-1
+            sha: a5bcfaedcb1ad67c8bb7f06c7143befc8292409c
+            phase: fix
+            tests: ''
+          - name: archive-2
+            sha: 351002eab7e69791a9eb6cd3764c35e1c3cbc130
+            phase: fix
+            tests: ''
+          - name: archive-3
+            sha: dde4aa0233be968f9b55bd3316204b880b8dbf2e
+            phase: fix
+            tests: ''
+          - name: archive-4
+            sha: 3f3ec6a4bd97bb987d9cad906ce4b2f5028ff88b
+            phase: fix
+            tests: ''
+          - name: archive-5
+            sha: 4cac36386e426e332bd89cb2cfa63894f3a367a5
+            phase: fix
+            tests: ''
+          - name: archive-6
+            sha: 61fdab39da4849eb5a84196df53c55e19c869134
+            phase: fix
+            tests: ''
+          - name: archive-7
+            sha: 5da8880d3b56785498cf0c09ae46f300f070322d
+            phase: fix
+            tests: ''
+          - name: archive-8
+            sha: a60d007d6cd5f29daf97808a331776f682d4a0d5
+            phase: fix
+            tests: ''
+          - name: archive-9
+            sha: daaeb4fe6c2db3f805fb9b02f9fbdfe55d80eb4a
+            phase: fix
+            tests: ''
+          - name: archive-10
+            sha: cd5d8c7006070db9b220d9397346de9cecd89900
+            phase: fix
+            tests: ''
+          - name: other-arsc-final
+            sha: ea680eeb9e9267e54e304448596fd947cc18f3d5
+            phase: fix
+            tests: ''
+          - name: baseline-native-all
+            sha: a100bb0647e191efa327867191fa508a49b8df2c
+            phase: baseline
+            tests: '--no-fail-fast --test import_library_slots --test elf_core_path_cursor --test elf_partial_section_symbols --test elf_version_section_bounds --test pe_import_directory_bounds --test pe_virtual_address_overflow --test pe_export_work_budget --test macho_thread_state --test macho_indirect_global_budget --test objc_method_record_stride'
+          - name: baseline-archive-all
+            sha: 9415e3d2c7aa457474d691aab342203830a34ccb
+            phase: baseline
+            tests: '--lib --no-fail-fast'
+          - name: baseline-other-all
+            sha: ebd0ef71ece645d70eddfcfd994dd2ad7153f778
+            phase: baseline
+            tests: '--no-fail-fast --test java_constant_pool_slots --test godot_trailer_boundary --test node_sea_metadata_budget --test il2cpp_literal_budget --test unity_integer_textures --test dex_capped_table_boundaries --test arsc_parent_chunk_boundaries --test wasm_custom_inventory_budget --test unity_metadata_range --test unreal_float_textures'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: ${{ matrix.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: contribution-formats
+          cache-on-failure: 'true'
+      - name: Formatting
+        if: matrix.phase == 'fix'
+        run: cargo fmt --all -- --check
+      - name: Format parser tests
+        if: always()
+        run: cargo test --locked -p craft-anything-formats ${{ matrix.tests }}
+      - name: Format parser lint
+        if: always() && matrix.phase == 'fix'
+        run: cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
