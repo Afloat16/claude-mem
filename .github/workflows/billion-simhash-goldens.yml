@@ -80,7 +80,7 @@ jobs:
             const stateDiff = diff(beforeState, afterState);
             console.log("PERSISTED_STATE_DIFF " + JSON.stringify({ wire, changes: stateDiff }));
             assert.ok(stateDiff.length > 0, "expected corrected SimHash metadata for " + wire);
-            assert.ok(stateDiff.every(x => /^metadata\..*sketches\.\d+$/.test(x.path)), "only persisted affinity sketch values may change");
+            assert.ok(stateDiff.every(x => /^metadata\.foldAnchors\.h_[0-9a-f]+\.sh$/.test(x.path)), "only persisted fold-anchor SimHash values may change");
             total += stateDiff.length;
             const file = "tests/golden/storage-render/" + wire + ".json";
             const content = fs.readFileSync(file, "utf8");
