@@ -1,0 +1,338 @@
+name: Archive main integration and tar installer review
+on:
+  push:
+    branches:
+      - validation/archive-main-integration-20261109
+permissions:
+  contents: read
+jobs:
+  archive-integration:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Nine archive heads merged with main
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - name: Keep sequential compilation outside checkout
+        run: echo "CARGO_TARGET_DIR=$RUNNER_TEMP/archive-main-target" >> "$GITHUB_ENV"
+      - name: Check out archive 1 integrated source
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: a574cde8b266b8a07f84b0ad70a809a08e8f4d95
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - name: Archive 1 formatting
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "a574cde8b266b8a07f84b0ad70a809a08e8f4d95"
+          cargo fmt --all -- --check
+      - name: Archive 1 regression tests
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "a574cde8b266b8a07f84b0ad70a809a08e8f4d95"
+          cargo test --locked -p craft-anything-formats --no-fail-fast
+      - name: Archive 1 clippy
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "a574cde8b266b8a07f84b0ad70a809a08e8f4d95"
+          cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Archive 1 L0 gates
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "a574cde8b266b8a07f84b0ad70a809a08e8f4d95"
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 2 integrated source
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 1613476ae0e8af07bf09e69f6454705047ec1e90
+          persist-credentials: false
+      - name: Archive 2 formatting
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "1613476ae0e8af07bf09e69f6454705047ec1e90"
+          cargo fmt --all -- --check
+      - name: Archive 2 regression tests
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "1613476ae0e8af07bf09e69f6454705047ec1e90"
+          cargo test --locked -p craft-anything-formats --no-fail-fast
+      - name: Archive 2 clippy
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "1613476ae0e8af07bf09e69f6454705047ec1e90"
+          cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Archive 2 L0 gates
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "1613476ae0e8af07bf09e69f6454705047ec1e90"
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 3 integrated source
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 7f58bf1574fae2edfd2fa71de2176639cb9562e1
+          persist-credentials: false
+      - name: Archive 3 formatting
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "7f58bf1574fae2edfd2fa71de2176639cb9562e1"
+          cargo fmt --all -- --check
+      - name: Archive 3 regression tests
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "7f58bf1574fae2edfd2fa71de2176639cb9562e1"
+          cargo test --locked -p craft-anything-formats --no-fail-fast
+      - name: Archive 3 clippy
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "7f58bf1574fae2edfd2fa71de2176639cb9562e1"
+          cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Archive 3 L0 gates
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "7f58bf1574fae2edfd2fa71de2176639cb9562e1"
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 4 integrated source
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: aadb52ee71b387e58d0d090bded25d8f6b6fea8d
+          persist-credentials: false
+      - name: Archive 4 formatting
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "aadb52ee71b387e58d0d090bded25d8f6b6fea8d"
+          cargo fmt --all -- --check
+      - name: Archive 4 regression tests
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "aadb52ee71b387e58d0d090bded25d8f6b6fea8d"
+          cargo test --locked -p craft-anything-formats --no-fail-fast
+      - name: Archive 4 clippy
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "aadb52ee71b387e58d0d090bded25d8f6b6fea8d"
+          cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Archive 4 L0 gates
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "aadb52ee71b387e58d0d090bded25d8f6b6fea8d"
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 5 integrated source
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 2ca31fb11dc780e9a96d9fa12beadf2e80ad4e53
+          persist-credentials: false
+      - name: Archive 5 formatting
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "2ca31fb11dc780e9a96d9fa12beadf2e80ad4e53"
+          cargo fmt --all -- --check
+      - name: Archive 5 regression tests
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "2ca31fb11dc780e9a96d9fa12beadf2e80ad4e53"
+          cargo test --locked -p craft-anything-formats --no-fail-fast
+      - name: Archive 5 clippy
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "2ca31fb11dc780e9a96d9fa12beadf2e80ad4e53"
+          cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Archive 5 L0 gates
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "2ca31fb11dc780e9a96d9fa12beadf2e80ad4e53"
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 6 integrated source
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: a298987d966e4e58f84afd6ed81d46d88dd4ec69
+          persist-credentials: false
+      - name: Archive 6 formatting
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "a298987d966e4e58f84afd6ed81d46d88dd4ec69"
+          cargo fmt --all -- --check
+      - name: Archive 6 regression tests
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "a298987d966e4e58f84afd6ed81d46d88dd4ec69"
+          cargo test --locked -p craft-anything-formats --no-fail-fast
+      - name: Archive 6 clippy
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "a298987d966e4e58f84afd6ed81d46d88dd4ec69"
+          cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Archive 6 L0 gates
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "a298987d966e4e58f84afd6ed81d46d88dd4ec69"
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 7 integrated source
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: f57923ea32733aa2d4e383bb44dd4b3892b9dfe5
+          persist-credentials: false
+      - name: Archive 7 formatting
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "f57923ea32733aa2d4e383bb44dd4b3892b9dfe5"
+          cargo fmt --all -- --check
+      - name: Archive 7 regression tests
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "f57923ea32733aa2d4e383bb44dd4b3892b9dfe5"
+          cargo test --locked -p craft-anything-formats --no-fail-fast
+      - name: Archive 7 clippy
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "f57923ea32733aa2d4e383bb44dd4b3892b9dfe5"
+          cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Archive 7 L0 gates
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "f57923ea32733aa2d4e383bb44dd4b3892b9dfe5"
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 9 integrated source
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 576b1d0bc3b9ac26b00bfa748de20ca7b44bb702
+          persist-credentials: false
+      - name: Archive 9 formatting
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "576b1d0bc3b9ac26b00bfa748de20ca7b44bb702"
+          cargo fmt --all -- --check
+      - name: Archive 9 regression tests
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "576b1d0bc3b9ac26b00bfa748de20ca7b44bb702"
+          cargo test --locked -p craft-anything-formats --no-fail-fast
+      - name: Archive 9 clippy
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "576b1d0bc3b9ac26b00bfa748de20ca7b44bb702"
+          cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Archive 9 L0 gates
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "576b1d0bc3b9ac26b00bfa748de20ca7b44bb702"
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 10 integrated source
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: f25796a28ead5c1f0b5233778a5578a8bd944684
+          persist-credentials: false
+      - name: Archive 10 formatting
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "f25796a28ead5c1f0b5233778a5578a8bd944684"
+          cargo fmt --all -- --check
+      - name: Archive 10 regression tests
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "f25796a28ead5c1f0b5233778a5578a8bd944684"
+          cargo test --locked -p craft-anything-formats --no-fail-fast
+      - name: Archive 10 clippy
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "f25796a28ead5c1f0b5233778a5578a8bd944684"
+          cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Archive 10 L0 gates
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "f25796a28ead5c1f0b5233778a5578a8bd944684"
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+  tar-installer:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Corrected tar installer exact source
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: d29f3360529871f50e02092839a3f8dcb2568b73
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - name: Check formatting
+        run: |
+          test "$(git rev-parse HEAD)" = "d29f3360529871f50e02092839a3f8dcb2568b73"
+          cargo fmt --all -- --check
+      - name: Test formats and engines
+        if: always()
+        run: cargo test --locked -p craft-anything-formats -p craft-anything-engines --no-fail-fast
+      - name: Lint formats and engines
+        if: always()
+        run: cargo clippy --locked -p craft-anything-formats -p craft-anything-engines --all-targets -- -D warnings
+      - name: L0 gates
+        if: always()
+        run: |
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
