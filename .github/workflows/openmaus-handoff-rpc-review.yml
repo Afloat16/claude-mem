@@ -1,0 +1,46 @@
+name: OpenMaus handoff and RPC review verification
+on:
+  push:
+    branches:
+      - validation/openmaus-review-paths-rpc-20261109
+permissions:
+  contents: read
+jobs:
+  reviewed:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: OpenMaus review ${{ matrix.number }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - number: 7
+            sha: a331e14a18803a876ca60149286bff88e58c197a
+            tests: 'server/thread-events.test.ts server/turn-continuation.test.ts'
+            lint: 'server/thread-events.ts server/thread-events.test.ts server/turn-continuation.ts server/turn-continuation.test.ts'
+          - number: 10
+            sha: 13faee0bf135b35db9ce81850ec8a469d03462f1
+            tests: 'server/connector-tools-list.test.ts server/connected-reads.test.ts'
+            lint: 'server/connector-tools-list.ts server/connector-tools-list.test.ts'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/OpenMausBot
+          ref: ${{ matrix.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+      - name: Install declared dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Full project typecheck
+        run: pnpm typecheck
+      - name: Targeted regressions
+        if: always()
+        run: pnpm exec vitest run --environment node --maxWorkers=1 --no-file-parallelism ${{ matrix.tests }}
+      - name: Changed TypeScript lint
+        if: always()
+        run: pnpm exec oxlint ${{ matrix.lint }}
