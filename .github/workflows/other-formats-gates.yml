@@ -1,0 +1,129 @@
+name: Other format independent compatibility gates
+on:
+  push:
+    branches:
+      - validation/other-formats-gates-20261109
+permissions:
+  contents: read
+jobs:
+  compatibility:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Seven independent format compatibility gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CARGO_TERM_COLOR: never
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 9744a0569a7c51d8938ce645e52f9a66965fb1e2
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: contribution-formats
+          cache-on-failure: 'true'
+      - name: godot exact-source compatibility
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "9744a0569a7c51d8938ce645e52f9a66965fb1e2"
+          cargo xtask status
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: d81b7d5705461ef4425c33a03de4252f5f096f13
+          persist-credentials: false
+          clean: false
+      - name: il2cpp exact-source compatibility
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "d81b7d5705461ef4425c33a03de4252f5f096f13"
+          cargo xtask status
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 540b4947aa1bc7a7195d67eabcbff5582b8a3127
+          persist-credentials: false
+          clean: false
+      - name: unity_integer exact-source compatibility
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "540b4947aa1bc7a7195d67eabcbff5582b8a3127"
+          cargo xtask status
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 149f060b9959e8906327e799088728820659513c
+          persist-credentials: false
+          clean: false
+      - name: dex exact-source compatibility
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "149f060b9959e8906327e799088728820659513c"
+          cargo xtask status
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: ea680eeb9e9267e54e304448596fd947cc18f3d5
+          persist-credentials: false
+          clean: false
+      - name: arsc exact-source compatibility
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "ea680eeb9e9267e54e304448596fd947cc18f3d5"
+          cargo xtask status
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: de9d7444f5098a3e6c27b32f3b5249d4bb2743fc
+          persist-credentials: false
+          clean: false
+      - name: unity_metadata exact-source compatibility
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "de9d7444f5098a3e6c27b32f3b5249d4bb2743fc"
+          cargo xtask status
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 75b507c0b96fe22c8f8a1e517c31ef6cee207a01
+          persist-credentials: false
+          clean: false
+      - name: unreal_float exact-source compatibility
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "75b507c0b96fe22c8f8a1e517c31ef6cee207a01"
+          cargo xtask status
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
