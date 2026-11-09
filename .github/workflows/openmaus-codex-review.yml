@@ -1,0 +1,36 @@
+name: OpenMaus Codex MCP review verification
+on:
+  push:
+    branches:
+      - validation/openmaus-codex-review-20261109
+permissions:
+  contents: read
+jobs:
+  codex-mcp:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Codex MCP exact-source review checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/OpenMausBot
+          ref: a0277e17ec943ef064f4949335a26ceb1aaae3f2
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+      - name: Install declared dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Full project typecheck
+        run: pnpm typecheck
+      - name: MCP names and TOML regressions
+        if: always()
+        run: pnpm exec vitest run --environment node --maxWorkers=1 --no-file-parallelism server/drivers/codex-mcp-names.test.ts server/toml-lite.test.ts
+      - name: Scoped driver regressions and compatibility
+        if: always()
+        run: pnpm exec vitest run --environment node --maxWorkers=1 --no-file-parallelism server/drivers/codex.test.ts -t 'MCP mount names|literal MCP server|gates raw custom identities|still mounts its own copy|mounts a custom server under|does not mount a second copy'
+      - name: Changed TypeScript lint
+        if: always()
+        run: pnpm exec oxlint server/drivers/codex-mcp-names.ts server/drivers/codex-mcp-names.test.ts server/drivers/codex.ts server/testing/fake-codex-app-server.ts server/drivers/codex.test.ts
