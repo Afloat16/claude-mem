@@ -1,7 +1,7 @@
 {
   "repository": "thedotmack/claude-mem",
   "fork": "Afloat16/claude-mem",
-  "observed_at": "2026-11-09 15:10:46 UTC",
+  "observed_at": "2026-11-09 15:51:20 UTC",
   "counts": {
     "requested": 10,
     "independent_upstream_prs": 10,
@@ -19,7 +19,7 @@
         "state": "open",
         "merged": false,
         "merged_at": null,
-        "head": "0dad2b743304d96bef765b9da5eee33a8ebca254"
+        "head": "d774c438b947277592633c16efc0f9ba3329a0df"
       },
       "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
       "regression_files": [
@@ -41,20 +41,20 @@
       "upstream_checks": [
         {
           "name": "Windows",
-          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637044683",
-          "head": "0dad2b743304d96bef765b9da5eee33a8ebca254",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42642512229",
+          "head": "d774c438b947277592633c16efc0f9ba3329a0df",
           "status": "completed",
           "conclusion": "success"
         },
         {
           "name": "CI",
-          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637044746",
-          "head": "0dad2b743304d96bef765b9da5eee33a8ebca254",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42642512081",
+          "head": "d774c438b947277592633c16efc0f9ba3329a0df",
           "status": "completed",
-          "conclusion": "success"
+          "conclusion": "failure"
         }
       ],
-      "body": "## Problem\nA valid, deeply nested JSON result from a publishing tool overflows the recursive URL scan. One captured result can therefore interrupt work-product projection instead of showing the artifact it produced.\n\n## Changes\nTraverse nested results with an explicit stack, preserving depth-first link order and the existing URL-field filter. Track visited objects so in-memory cyclic responses also terminate.\n\n\n## Regression coverage\n\nExercises 20,000-level nested results, depth-first URL ordering, and cyclic in-memory responses; the cyclic case runs in a bounded child process.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `74fc454bc8e12f0b25dca98a10b1a372b067ee3e` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081856). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `0dad2b743304d96bef765b9da5eee33a8ebca254`.\n"
+      "body": "## Problem\nA valid, deeply nested JSON result from a publishing tool overflows the recursive URL scan. One captured result can therefore interrupt work-product projection instead of showing the artifact it produced.\n\n## Changes\nTraverse nested results with an explicit stack, preserving depth-first link order and the existing URL-field filter. Track visited objects so in-memory cyclic responses also terminate.\n\n\n## Regression coverage\n\nExercises 20,000-level nested results, depth-first URL ordering, and cyclic in-memory responses; the cyclic case runs in a bounded child process.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `74fc454bc8e12f0b25dca98a10b1a372b067ee3e` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081856). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nCommit `d774c438b947277592633c16efc0f9ba3329a0df` completes the paired runtime update: the context-reader bundle consumes saved work state passed by the worker, and the MCP bundle exposes the work-state guidance during initialization. The packaging regression now requires that saved work state survive rendering through the built reader in a directory without `node_modules`.\n\nThe root TypeScript check and full `npm run build` passed for this update. The four generated reader/MCP files reproduce with the committed build configuration. The three focused publishing-result regressions also passed under Node.\n\nCurrent-head checks: [Windows](https://github.com/thedotmack/claude-mem/actions/runs/42642512229) and [CI](https://github.com/thedotmack/claude-mem/actions/runs/42642512081).\n\n## Database integration verification\n\nThe current upstream CI failed at PostgreSQL deadlock during the Docker runtime test's API-key setup. Repeating the same job's test commands and time limits at exact commit `d774c438b947277592633c16efc0f9ba3329a0df` passed: [verification of this commit](https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936943). The unchanged implementation base `989a98a2fb7978354497df46c4e17101f54ba9a3` passed the same checks: [baseline verification](https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936514). These jobs use isolated checkouts and read-only repository permissions. No production change, assertion or timeout adjustment was needed to obtain these results.\n\nThe current head's upstream build/typecheck/test job and Windows workflow also passed. The earlier database failure was not reproduced in this check; the fork results do not change the upstream status, whose failed job still needs a maintainer rerun.\n"
     },
     {
       "number": 2,
@@ -66,7 +66,7 @@
         "state": "open",
         "merged": false,
         "merged_at": null,
-        "head": "c74121e59fe89981fd8571dfbaa704ee450c3a8d"
+        "head": "8a266a7508048a6521db61510c69a7a4ce28bc81"
       },
       "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
       "regression_files": [
@@ -87,21 +87,21 @@
       },
       "upstream_checks": [
         {
-          "name": "CI",
-          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42636124432",
-          "head": "c74121e59fe89981fd8571dfbaa704ee450c3a8d",
+          "name": "Windows",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42642521511",
+          "head": "8a266a7508048a6521db61510c69a7a4ce28bc81",
           "status": "completed",
-          "conclusion": "failure"
+          "conclusion": "success"
         },
         {
-          "name": "Windows",
-          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42636124558",
-          "head": "c74121e59fe89981fd8571dfbaa704ee450c3a8d",
+          "name": "CI",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42642521409",
+          "head": "8a266a7508048a6521db61510c69a7a4ce28bc81",
           "status": "completed",
           "conclusion": "success"
         }
       ],
-      "body": "## Problem\nSynced work-state rows receive new local IDs. Although replay already uses original timestamps, the final list order still used local row IDs. Importing old work therefore moved stale lists above recent activity and could set a project’s last-updated time to its oldest imported list.\n\n## Changes\nOrder the final lists by their latest activity timestamp, retaining the existing row-ID tie break. The revision watermark still uses local IDs, so polling behavior is unchanged.\n\n\n## Regression coverage\n\nExercises delayed imports, project timestamps, equal-timestamp tie breaks, and the unchanged revision watermark.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `903a1c23ba5922362ca22227461b82dce7e2d3a8` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081517). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `c74121e59fe89981fd8571dfbaa704ee450c3a8d`.\n"
+      "body": "## Problem\nSynced work-state rows receive new local IDs. Although replay already uses original timestamps, the final list order still used local row IDs. Importing old work therefore moved stale lists above recent activity and could set a project’s last-updated time to its oldest imported list.\n\n## Changes\nOrder the final lists by their latest activity timestamp, retaining the existing row-ID tie break. The revision watermark still uses local IDs, so polling behavior is unchanged.\n\n\n## Regression coverage\n\nExercises delayed imports, project timestamps, equal-timestamp tie breaks, and the unchanged revision watermark.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `903a1c23ba5922362ca22227461b82dce7e2d3a8` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081517). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nCommit `8a266a7508048a6521db61510c69a7a4ce28bc81` completes the paired runtime update: the context-reader bundle consumes saved work state passed by the worker, and the MCP bundle exposes the work-state guidance during initialization. The packaging regression now requires that saved work state survive rendering through the built reader in a directory without `node_modules`.\n\nThe root TypeScript check and full `npm run build` passed for this update. The four generated reader/MCP files reproduce with the committed build configuration. Current-head checks: [CI](https://github.com/thedotmack/claude-mem/actions/runs/42642521409) and [Windows](https://github.com/thedotmack/claude-mem/actions/runs/42642521511).\n"
     },
     {
       "number": 3,
@@ -137,8 +137,8 @@
           "name": "CI",
           "url": "https://github.com/thedotmack/claude-mem/actions/runs/42640114967",
           "head": "52477ad17ac0ce7f2c4a4d88707999fd05502e56",
-          "status": "in_progress",
-          "conclusion": null
+          "status": "completed",
+          "conclusion": "failure"
         },
         {
           "name": "Windows",
@@ -148,7 +148,7 @@
           "conclusion": "success"
         }
       ],
-      "body": "## Problem\nSaved My Rules rows serialize an intentionally empty quote list as an empty string. Projection treated that value as missing and restored the old suggestion evidence, including quotes deliberately removed by the 2,000-character saved-row budget.\n\n## Changes\nUse field presence to distinguish saved empty evidence from legacy rows without a quotes field. Saved quotes remain authoritative; legacy rows retain their existing fallback.\n\n\n## Regression coverage\n\nExercises explicitly empty quotes, quote-budget removal, legacy rows without a quotes field, and replacement quotes.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `d08898368bb838b7dd738a9900fe5cdd2100bd70` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081711). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `d34263c571aaa0bfbf98c15ac4ec7245f669bf53`.\n"
+      "body": "## Problem\nSaved My Rules rows serialize an intentionally empty quote list as an empty string. Projection treated that value as missing and restored the old suggestion evidence, including quotes deliberately removed by the 2,000-character saved-row budget.\n\n## Changes\nUse field presence to distinguish saved empty evidence from legacy rows without a quotes field. Saved quotes remain authoritative; legacy rows retain their existing fallback.\n\n\n## Regression coverage\n\nExercises explicitly empty quotes, quote-budget removal, legacy rows without a quotes field, and replacement quotes.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `d08898368bb838b7dd738a9900fe5cdd2100bd70` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081711). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `d34263c571aaa0bfbf98c15ac4ec7245f669bf53`.\n\n## Database integration verification\n\nThe current upstream CI failed at review-fingerprint equality in the sync protocol matrix. Repeating the same job's test commands and time limits at exact commit `52477ad17ac0ce7f2c4a4d88707999fd05502e56` passed: [verification of this commit](https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936831). The unchanged implementation base `989a98a2fb7978354497df46c4e17101f54ba9a3` passed the same checks: [baseline verification](https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936711). These jobs use isolated checkouts and read-only repository permissions. No production change, assertion or timeout adjustment was needed to obtain these results.\n\nThe current head's upstream build/typecheck/test job and Windows workflow also passed. The earlier database failure was not reproduced in this check; the fork results do not change the upstream status, whose failed job still needs a maintainer rerun.\n"
     },
     {
       "number": 4,
@@ -160,7 +160,7 @@
         "state": "open",
         "merged": false,
         "merged_at": null,
-        "head": "dbf9518c2265d354acd825ada01d075f14a3d895"
+        "head": "8847f7c155b8fedcd6d665985d380ba651f4a662"
       },
       "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
       "regression_files": [
@@ -182,20 +182,20 @@
       "upstream_checks": [
         {
           "name": "Windows",
-          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637050270",
-          "head": "dbf9518c2265d354acd825ada01d075f14a3d895",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42642525537",
+          "head": "8847f7c155b8fedcd6d665985d380ba651f4a662",
           "status": "completed",
           "conclusion": "success"
         },
         {
           "name": "CI",
-          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637050153",
-          "head": "dbf9518c2265d354acd825ada01d075f14a3d895",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42642525291",
+          "head": "8847f7c155b8fedcd6d665985d380ba651f4a662",
           "status": "completed",
           "conclusion": "success"
         }
       ],
-      "body": "## Problem\nThe request-progress CLI and worker write ledger snapshots through the same fixed temporary filename. Concurrent writes can overwrite or rename another writer’s in-progress file; failed renames also leave temporary files behind.\n\n## Changes\nReuse the existing atomic JSON writer, with unique temporary files, completed-payload flushing and cleanup on failure. Preserve private 0600 permissions, the DB-first redaction hook and completion ordering.\n\n\n## Regression coverage\n\nExercises occupied temporary paths, rename failure cleanup, private file permissions, and redaction-hook ordering.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `032a1522f435fce029e6021ec54a0bea3c1d0eb9` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081658). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `dbf9518c2265d354acd825ada01d075f14a3d895`.\n"
+      "body": "## Problem\nThe request-progress CLI and worker write ledger snapshots through the same fixed temporary filename. Concurrent writes can overwrite or rename another writer’s in-progress file; failed renames also leave temporary files behind.\n\n## Changes\nReuse the existing atomic JSON writer, with unique temporary files, completed-payload flushing and cleanup on failure. Preserve private 0600 permissions, the DB-first redaction hook and completion ordering.\n\n\n## Regression coverage\n\nExercises occupied temporary paths, rename failure cleanup, private file permissions, and redaction-hook ordering.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `032a1522f435fce029e6021ec54a0bea3c1d0eb9` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081658). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nCommit `8847f7c155b8fedcd6d665985d380ba651f4a662` completes the paired runtime update: the context-reader bundle consumes saved work state passed by the worker, and the MCP bundle exposes the work-state guidance during initialization. The packaging regression now requires that saved work state survive rendering through the built reader in a directory without `node_modules`.\n\nThe root TypeScript check and full `npm run build` passed for this update. The four generated reader/MCP files reproduce with the committed build configuration. Current-head checks: [CI](https://github.com/thedotmack/claude-mem/actions/runs/42642525291) and [Windows](https://github.com/thedotmack/claude-mem/actions/runs/42642525537).\n"
     },
     {
       "number": 5,
@@ -228,8 +228,8 @@
           "name": "CI",
           "url": "https://github.com/thedotmack/claude-mem/actions/runs/42640367208",
           "head": "c292f570e44369f1bd9e1053da849aa86e1f545e",
-          "status": "in_progress",
-          "conclusion": null
+          "status": "completed",
+          "conclusion": "success"
         },
         {
           "name": "Windows",
@@ -273,20 +273,20 @@
       "upstream_checks": [
         {
           "name": "Windows",
-          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637063753",
-          "head": "5544eedfc545a258e1a0e8db7f2d846386f99ca2",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42641770989",
+          "head": "d1d07672f4138042ab0cfe7a545ac723de81adeb",
           "status": "completed",
           "conclusion": "success"
         },
         {
           "name": "CI",
-          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637064141",
-          "head": "5544eedfc545a258e1a0e8db7f2d846386f99ca2",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42641771075",
+          "head": "d1d07672f4138042ab0cfe7a545ac723de81adeb",
           "status": "completed",
           "conclusion": "success"
         }
       ],
-      "body": "## Problem\nA saved observation can contain a mixed JSON file list. `fileKind` already rejects non-path entries, but projection still calls `basename` on them before checking that result. A null, number or object therefore throws and prevents the valid files in the same request from appearing.\n\n## Changes\nReturn early for rejected file entries before deriving a title. Preserve each valid file's original array index, which the file route uses to resolve the recorded path.\n\n\n## Regression coverage\n\nExercises mixed-type file lists, rejected string paths, generic index.html titles, and recorded-file lookup by the original array index.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `a85128088209d1358d0144605d123c52664dbcc4` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081885). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `5544eedfc545a258e1a0e8db7f2d846386f99ca2`.\n"
+      "body": "## Problem\nA saved observation can contain a mixed JSON file list. `fileKind` already rejects non-path entries, but projection still calls `basename` on them before checking that result. A null, number or object therefore throws and prevents the valid files in the same request from appearing.\n\n## Changes\nReturn early for rejected file entries before deriving a title. Preserve each valid file's original array index, which the file route uses to resolve the recorded path.\n\n\n## Regression coverage\n\nExercises mixed-type file lists, rejected string paths, generic index.html titles, and recorded-file lookup by the original array index.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `a85128088209d1358d0144605d123c52664dbcc4` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081885). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `5544eedfc545a258e1a0e8db7f2d846386f99ca2`.\n\n## Runtime bundle follow-up\n\nCommit `d1d07672f4138042ab0cfe7a545ac723de81adeb` also synchronizes the context reader and MCP server, with their source maps, with the rebuilt worker. This preserves saved work in session-start context and delivers the work-state rule through MCP initialization. The packaging fixture now checks that saved work survives the isolated reader alongside an existing observation.\n\nThe root TypeScript check and full bundle build pass on this branch. [CI for the updated commit](https://github.com/thedotmack/claude-mem/actions/runs/42641771075) is running.\n"
     },
     {
       "number": 7,
@@ -298,7 +298,7 @@
         "state": "open",
         "merged": false,
         "merged_at": null,
-        "head": "6f8e7a7868f2501d004977bb4c0817f26a1faae4"
+        "head": "75902142fb57061283c7528fbccd48cebb5ad448"
       },
       "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
       "regression_files": [
@@ -317,20 +317,20 @@
       "upstream_checks": [
         {
           "name": "Windows",
-          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637070263",
-          "head": "6f8e7a7868f2501d004977bb4c0817f26a1faae4",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42641881838",
+          "head": "75902142fb57061283c7528fbccd48cebb5ad448",
           "status": "completed",
           "conclusion": "success"
         },
         {
           "name": "CI",
-          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637070219",
-          "head": "6f8e7a7868f2501d004977bb4c0817f26a1faae4",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42641881943",
+          "head": "75902142fb57061283c7528fbccd48cebb5ad448",
           "status": "completed",
-          "conclusion": "success"
+          "conclusion": "failure"
         }
       ],
-      "body": "## Problem\nFile recall repeatedly scans the growing ranked-ID array while appending metadata matches, then scans it again for every sort comparison. The in-memory ranking work grows quadratically for large histories even though membership and rank are fixed for the request.\n\n## Changes\nUse sets for duplicate/membership checks and a rank map for sorting hydrated rows. Preserve the semantic prefix, metadata fallback order, explicit date ordering, limits and session results.\n\n\n## Regression coverage\n\nExercises duplicate semantic IDs, unmatched IDs, explicit date order, empty intersections, and a 50,000-observation history.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `b5698e827b6c700d932f13597086e22026167c29` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081682). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `6f8e7a7868f2501d004977bb4c0817f26a1faae4`.\n"
+      "body": "## Problem\nFile recall repeatedly scans the growing ranked-ID array while appending metadata matches, then scans it again for every sort comparison. The in-memory ranking work grows quadratically for large histories even though membership and rank are fixed for the request.\n\n## Changes\nUse sets for duplicate/membership checks and a rank map for sorting hydrated rows. Preserve the semantic prefix, metadata fallback order, explicit date ordering, limits and session results.\n\n\n## Regression coverage\n\nExercises duplicate semantic IDs, unmatched IDs, explicit date order, empty intersections, and a 50,000-observation history.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `b5698e827b6c700d932f13597086e22026167c29` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081682). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `6f8e7a7868f2501d004977bb4c0817f26a1faae4`.\n\n## Runtime bundle follow-up\n\nCommit `75902142fb57061283c7528fbccd48cebb5ad448` also synchronizes the context reader and MCP server, with their source maps, with the rebuilt worker. This preserves saved work in session-start context and delivers the work-state rule through MCP initialization. The packaging fixture now checks that saved work survives the isolated reader alongside an existing observation.\n\nThe root TypeScript check and full bundle build pass on this branch, and Windows CI has passed. [CI for the updated commit](https://github.com/thedotmack/claude-mem/actions/runs/42641881943) has two failed jobs: server search and Sync API both exceeded the existing 5-second limit in the same unchanged semantic-context-route test. Both corresponding jobs passed on the parent head against the same base. The [failure details and targeted rerun request](https://github.com/thedotmack/claude-mem/pull/5586#issuecomment-6743687952) include the job links, timings, and source comparison; these failures remain unresolved.\n\n## Database integration verification\n\nThe current upstream CI failed at the 5-second semantic-context limit test in the sync-api and pgvector jobs. Repeating the same job's test commands and time limits at exact commit `75902142fb57061283c7528fbccd48cebb5ad448` passed: [verification of this commit 1](https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936350) and [verification of this commit 2](https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936745). The unchanged implementation base `989a98a2fb7978354497df46c4e17101f54ba9a3` passed the same checks: [baseline verification 1](https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936711) and [baseline verification 2](https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258935848). These jobs use isolated checkouts and read-only repository permissions. No production change, assertion or timeout adjustment was needed to obtain these results.\n\nThe current head's upstream build/typecheck/test job and Windows workflow also passed. The earlier database failure was not reproduced in this check; the fork results do not change the upstream status, whose failed job still needs a maintainer rerun.\n"
     },
     {
       "number": 8,
@@ -342,7 +342,7 @@
         "state": "open",
         "merged": false,
         "merged_at": null,
-        "head": "a2dbaa0fe6a1caaf5c58817ec8a58f1e0ce60833"
+        "head": "e9ff83dc2bcfd2b3b87ac4988a993b19e04eea79"
       },
       "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
       "regression_files": [
@@ -362,21 +362,21 @@
       },
       "upstream_checks": [
         {
-          "name": "CI",
-          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42639244669",
-          "head": "a2dbaa0fe6a1caaf5c58817ec8a58f1e0ce60833",
-          "status": "in_progress",
-          "conclusion": null
+          "name": "Windows",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42641892511",
+          "head": "e9ff83dc2bcfd2b3b87ac4988a993b19e04eea79",
+          "status": "completed",
+          "conclusion": "success"
         },
         {
-          "name": "Windows",
-          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42639245019",
-          "head": "a2dbaa0fe6a1caaf5c58817ec8a58f1e0ce60833",
+          "name": "CI",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42641892415",
+          "head": "e9ff83dc2bcfd2b3b87ac4988a993b19e04eea79",
           "status": "completed",
           "conclusion": "success"
         }
       ],
-      "body": "## Problem\nMoving or ignoring a conversation updates the membership map, but link cleanup runs only for the destination group. The previous group can retain evidence that names a conversation now belonging elsewhere, so its recorded explanation no longer matches its actual members.\n\n## Changes\nAfter applying all group and ignore decisions, prune each surviving group's links against final membership. Preserve links between remaining members and keep the stored input immutable.\n\n\n## Regression coverage\n\nExercises moved conversations, ignored conversations, unchanged membership, and preservation of the stored input.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `cc4413722d92a0c67e2bab7488231931465ad760` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081205). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `a2dbaa0fe6a1caaf5c58817ec8a58f1e0ce60833`.\n"
+      "body": "## Problem\nMoving or ignoring a conversation updates the membership map, but link cleanup runs only for the destination group. The previous group can retain evidence that names a conversation now belonging elsewhere, so its recorded explanation no longer matches its actual members.\n\n## Changes\nAfter applying all group and ignore decisions, prune each surviving group's links against final membership. Preserve links between remaining members and keep the stored input immutable.\n\n\n## Regression coverage\n\nExercises moved conversations, ignored conversations, unchanged membership, and preservation of the stored input.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `cc4413722d92a0c67e2bab7488231931465ad760` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081205). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `a2dbaa0fe6a1caaf5c58817ec8a58f1e0ce60833`.\n\n## Runtime bundle follow-up\n\nCommit `e9ff83dc2bcfd2b3b87ac4988a993b19e04eea79` also synchronizes the context reader and MCP server, with their source maps, with the rebuilt worker. This preserves saved work in session-start context and delivers the work-state rule through MCP initialization. The packaging fixture now checks that saved work survives the isolated reader alongside an existing observation.\n\nThe root TypeScript check and full bundle build pass on this branch. [CI for the updated commit](https://github.com/thedotmack/claude-mem/actions/runs/42641892415) is running.\n"
     },
     {
       "number": 9,
@@ -388,7 +388,7 @@
         "state": "open",
         "merged": false,
         "merged_at": null,
-        "head": "0642adb05ebaf19faa81942bdd951ca274e34567"
+        "head": "d9f9eb9102b64e4e13e9b2a5c8fd0c54b1b89ee4"
       },
       "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
       "regression_files": [
@@ -409,20 +409,20 @@
       "upstream_checks": [
         {
           "name": "Windows",
-          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42639256789",
-          "head": "0642adb05ebaf19faa81942bdd951ca274e34567",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42641995066",
+          "head": "d9f9eb9102b64e4e13e9b2a5c8fd0c54b1b89ee4",
           "status": "completed",
           "conclusion": "success"
         },
         {
           "name": "CI",
-          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42639256726",
-          "head": "0642adb05ebaf19faa81942bdd951ca274e34567",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42641995120",
+          "head": "d9f9eb9102b64e4e13e9b2a5c8fd0c54b1b89ee4",
           "status": "completed",
-          "conclusion": "success"
+          "conclusion": "failure"
         }
       ],
-      "body": "## Problem\nLarge history scans and explicit conversation selections build one SQL statement containing every session ID. Once the selection exceeds SQLite's bound-parameter limit, the request-group reader fails instead of returning the owner's recorded work.\n\n## Changes\nRead conversation selections in batches of 250 key pairs and related prompts, work-state writes, observation counts and tool activity in batches of 500 session IDs. Deduplicate session IDs before the related queries so repeated keys cannot duplicate asks. Preserve the final chronological ordering and existing activity projections. Finalize each prepared statement in a finally block.\n\n\n## Regression coverage\n\nExercises 35,000 sessions, a 17,000-conversation selection, duplicate keys across batches, empty selections, and data in the final batch.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `38e6e76f094710518182267bea11ad7a6b3a9344` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081554). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `0642adb05ebaf19faa81942bdd951ca274e34567`.\n"
+      "body": "## Problem\nLarge history scans and explicit conversation selections build one SQL statement containing every session ID. Once the selection exceeds SQLite's bound-parameter limit, the request-group reader fails instead of returning the owner's recorded work.\n\n## Changes\nRead conversation selections in batches of 250 key pairs and related prompts, work-state writes, observation counts and tool activity in batches of 500 session IDs. Deduplicate session IDs before the related queries so repeated keys cannot duplicate asks. Preserve the final chronological ordering and existing activity projections. Finalize each prepared statement in a finally block.\n\n\n## Regression coverage\n\nExercises 35,000 sessions, a 17,000-conversation selection, duplicate keys across batches, empty selections, and data in the final batch.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `38e6e76f094710518182267bea11ad7a6b3a9344` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081554). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `0642adb05ebaf19faa81942bdd951ca274e34567`.\n\n## Runtime bundle follow-up\n\nCommit `d9f9eb9102b64e4e13e9b2a5c8fd0c54b1b89ee4` also synchronizes the context reader and MCP server, with their source maps, with the rebuilt worker. This preserves saved work in session-start context and delivers the work-state rule through MCP initialization. The packaging fixture now checks that saved work survives the isolated reader alongside an existing observation.\n\nThe root TypeScript check and full bundle build pass on this branch. [CI for the updated commit](https://github.com/thedotmack/claude-mem/actions/runs/42641995120) is running.\n\n## Database integration verification\n\nThe current upstream Docker runtime test failed with a PostgreSQL deadlock during API-key setup. Repeating the same job's test commands and time limits at exact commit `d9f9eb9102b64e4e13e9b2a5c8fd0c54b1b89ee4` passed: [verification of this commit](https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936409). The unchanged implementation base `989a98a2fb7978354497df46c4e17101f54ba9a3` passed the same job: [baseline verification](https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936514). These jobs use isolated checkouts and read-only repository permissions. No production change, assertion or timeout adjustment was needed to obtain these results.\n\nThe current head's upstream build/typecheck/test job and Windows workflow also passed. The earlier database failure was not reproduced in this check; the fork results do not change the upstream status, whose failed job still needs a maintainer rerun.\n"
     },
     {
       "number": 10,
@@ -456,21 +456,163 @@
           "name": "Windows",
           "url": "https://github.com/thedotmack/claude-mem/actions/runs/42641168650",
           "head": "7a8af27c46224b6fd2dbe9a307e0f8d3562c8526",
-          "status": "in_progress",
-          "conclusion": null
+          "status": "completed",
+          "conclusion": "success"
         },
         {
           "name": "CI",
           "url": "https://github.com/thedotmack/claude-mem/actions/runs/42641168713",
           "head": "7a8af27c46224b6fd2dbe9a307e0f8d3562c8526",
-          "status": "in_progress",
-          "conclusion": null
+          "status": "completed",
+          "conclusion": "failure"
         }
       ],
-      "body": "## Problem\nThe owner-goals reader folds patches in local insertion order. An older event imported after a newer decision therefore overwrites that decision: completed goals can become active again, and earlier summaries or cleared map paths can replace current state.\n\n## Changes\nReplay owner-goal patches by their recorded creation time, with the existing row ID as a deterministic tie-breaker. This changes state reconstruction in the CLI goal reader; it is separate from sorting already-reconstructed work lists for display.\n\n\n## Regression coverage\n\nExercises late-imported state after completion, summaries and cleared map paths, and equal-timestamp ordering.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `3296271886b77e44cedb937b9f2bde493f843358` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081685). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `3da7bc602db017df72edeaa46f9d6608544d6c64`.\n"
+      "body": "## Problem\nThe owner-goals reader folds patches in local insertion order. An older event imported after a newer decision therefore overwrites that decision: completed goals can become active again, and earlier summaries or cleared map paths can replace current state.\n\n## Changes\nReplay owner-goal patches by their recorded creation time, with the existing row ID as a deterministic tie-breaker. This changes state reconstruction in the CLI goal reader; it is separate from sorting already-reconstructed work lists for display.\n\n\n## Regression coverage\n\nExercises late-imported state after completion, summaries and cleared map paths, and equal-timestamp ordering.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `3296271886b77e44cedb937b9f2bde493f843358` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081685). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `3da7bc602db017df72edeaa46f9d6608544d6c64`.\n\n## Database integration verification\n\nThe current upstream CI failed at review-fingerprint equality in the sync protocol matrix. Repeating the same job's test commands and time limits at exact commit `7a8af27c46224b6fd2dbe9a307e0f8d3562c8526` passed: [verification of this commit](https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936375). The unchanged implementation base `989a98a2fb7978354497df46c4e17101f54ba9a3` passed the same checks: [baseline verification](https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936711). These jobs use isolated checkouts and read-only repository permissions. No production change, assertion or timeout adjustment was needed to obtain these results.\n\nThe current head's upstream build/typecheck/test job and Windows workflow also passed. The earlier database failure was not reproduced in this check; the fork results do not change the upstream status, whose failed job still needs a maintainer rerun.\n"
     }
   ],
   "ci_notes": {
-    "5580": "The latest upstream build job failed during onnxruntime-node install with ETIMEDOUT; subsequent integration errors followed missing dependencies. The other six CI jobs and Windows passed. A read-only exact-source rerun of the original build/test lane is running in Afloat16/claude-mem. The upstream gate remains failed until its maintainers rerun it."
+    "5579": "The originally failing Docker runtime e2e passed for the exact current head and unchanged base in isolated run42645899613.",
+    "5581": "Current upstream sync matrix failed at the review fingerprint equality check. The same original job passed for both the unchanged base and exact current head in isolated run42645899613.",
+    "5586": "Both originally failing sync-api and pgvector job definitions passed for the exact current head and unchanged base in isolated run42645899613.",
+    "5588": "The originally failing Docker runtime e2e passed for the exact current head and unchanged base in isolated run42645899613.",
+    "5589": "The originally failing sync protocol matrix passed for the exact current head and unchanged base in isolated run42645899613.",
+    "current_heads": "All ten latest heads have successful upstream Windows and typecheck/build/test/bundle-size jobs. Full upstream CI is successful for PRs 5580,5582,5583,5585,5587. The five remaining upstream CI runs retain failed database jobs, but all six failed job/source combinations and three unchanged-base controls passed once in isolated run42645899613.",
+    "5580_previous": "The earlier c74121e head's upstream build failed during onnxruntime-node npm install (ETIMEDOUT). The identical build lane passed at that exact source in run42641808234/job129244574654. The current 8a266a7 head now also has successful full upstream CI and Windows.",
+    "diagnostics": "https://github.com/Afloat16/claude-mem/actions/runs/42645899613",
+    "upstream_status": "Fork diagnostics cannot overwrite upstream checks or approve a merge. No upstream test assertions, timing limits or workflow requirements were weakened."
+  },
+  "database_diagnostics": {
+    "run": 42645899613,
+    "url": "https://github.com/Afloat16/claude-mem/actions/runs/42645899613",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "id": 129258935848,
+        "name": "server search (pgvector · pg_textsearch) — base",
+        "url": "https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258935848",
+        "conclusion": "success",
+        "workflow_head": "ddd7444e8f339de0c22a1fecd95ca99d0c1eb0f4",
+        "source_sha": "989a98a2fb7978354497df46c4e17101f54ba9a3"
+      },
+      {
+        "id": 129258936350,
+        "name": "sync-api (postgres · protocol v2 · matrix e2e) — pr-5586",
+        "url": "https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936350",
+        "conclusion": "success",
+        "workflow_head": "ddd7444e8f339de0c22a1fecd95ca99d0c1eb0f4",
+        "source_sha": "75902142fb57061283c7528fbccd48cebb5ad448"
+      },
+      {
+        "id": 129258936375,
+        "name": "sync-api (postgres · protocol v2 · matrix e2e) — pr-5589",
+        "url": "https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936375",
+        "conclusion": "success",
+        "workflow_head": "ddd7444e8f339de0c22a1fecd95ca99d0c1eb0f4",
+        "source_sha": "7a8af27c46224b6fd2dbe9a307e0f8d3562c8526"
+      },
+      {
+        "id": 129258936409,
+        "name": "server-runtime e2e (docker · pg + valkey) — pr-5588",
+        "url": "https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936409",
+        "conclusion": "success",
+        "workflow_head": "ddd7444e8f339de0c22a1fecd95ca99d0c1eb0f4",
+        "source_sha": "d9f9eb9102b64e4e13e9b2a5c8fd0c54b1b89ee4"
+      },
+      {
+        "id": 129258936514,
+        "name": "server-runtime e2e (docker · pg + valkey) — base",
+        "url": "https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936514",
+        "conclusion": "success",
+        "workflow_head": "ddd7444e8f339de0c22a1fecd95ca99d0c1eb0f4",
+        "source_sha": "989a98a2fb7978354497df46c4e17101f54ba9a3"
+      },
+      {
+        "id": 129258936711,
+        "name": "sync-api (postgres · protocol v2 · matrix e2e) — base",
+        "url": "https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936711",
+        "conclusion": "success",
+        "workflow_head": "ddd7444e8f339de0c22a1fecd95ca99d0c1eb0f4",
+        "source_sha": "989a98a2fb7978354497df46c4e17101f54ba9a3"
+      },
+      {
+        "id": 129258936745,
+        "name": "server search (pgvector · pg_textsearch) — pr-5586",
+        "url": "https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936745",
+        "conclusion": "success",
+        "workflow_head": "ddd7444e8f339de0c22a1fecd95ca99d0c1eb0f4",
+        "source_sha": "75902142fb57061283c7528fbccd48cebb5ad448"
+      },
+      {
+        "id": 129258936831,
+        "name": "sync-api (postgres · protocol v2 · matrix e2e) — pr-5581",
+        "url": "https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936831",
+        "conclusion": "success",
+        "workflow_head": "ddd7444e8f339de0c22a1fecd95ca99d0c1eb0f4",
+        "source_sha": "52477ad17ac0ce7f2c4a4d88707999fd05502e56"
+      },
+      {
+        "id": 129258936943,
+        "name": "server-runtime e2e (docker · pg + valkey) — pr-5579",
+        "url": "https://github.com/Afloat16/claude-mem/actions/runs/42645899613/job/129258936943",
+        "conclusion": "success",
+        "workflow_head": "ddd7444e8f339de0c22a1fecd95ca99d0c1eb0f4",
+        "source_sha": "d774c438b947277592633c16efc0f9ba3329a0df"
+      }
+    ],
+    "source_cases": [
+      {
+        "id": "sync-api",
+        "cases": [
+          {
+            "label": "base",
+            "source": "989a98a2fb7978354497df46c4e17101f54ba9a3"
+          },
+          {
+            "label": "pr-5581",
+            "source": "52477ad17ac0ce7f2c4a4d88707999fd05502e56"
+          },
+          {
+            "label": "pr-5586",
+            "source": "75902142fb57061283c7528fbccd48cebb5ad448"
+          },
+          {
+            "label": "pr-5589",
+            "source": "7a8af27c46224b6fd2dbe9a307e0f8d3562c8526"
+          }
+        ]
+      },
+      {
+        "id": "server-search-pgvector",
+        "cases": [
+          {
+            "label": "base",
+            "source": "989a98a2fb7978354497df46c4e17101f54ba9a3"
+          },
+          {
+            "label": "pr-5586",
+            "source": "75902142fb57061283c7528fbccd48cebb5ad448"
+          }
+        ]
+      },
+      {
+        "id": "server-runtime-e2e-docker",
+        "cases": [
+          {
+            "label": "base",
+            "source": "989a98a2fb7978354497df46c4e17101f54ba9a3"
+          },
+          {
+            "label": "pr-5579",
+            "source": "d774c438b947277592633c16efc0f9ba3329a0df"
+          },
+          {
+            "label": "pr-5588",
+            "source": "d9f9eb9102b64e4e13e9b2a5c8fd0c54b1b89ee4"
+          }
+        ]
+      }
+    ],
+    "scope": "Repeat only the failed integration lanes and their unchanged-base controls. Commands and time limits are unchanged; upstream checks remain independent."
   }
 }
