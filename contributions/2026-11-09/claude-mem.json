@@ -1,0 +1,476 @@
+{
+  "repository": "thedotmack/claude-mem",
+  "fork": "Afloat16/claude-mem",
+  "observed_at": "2026-11-09 15:10:46 UTC",
+  "counts": {
+    "requested": 10,
+    "independent_upstream_prs": 10,
+    "merged": 0
+  },
+  "counting": "Only independent upstream PRs count. Runtime bundle rebuilds, review fixes, validation-only PRs, and delivery documents do not add contributions.",
+  "entries": [
+    {
+      "number": 1,
+      "title": "fix(work-view): handle deeply nested publishing results",
+      "branch": "fix/work-product-deep-results",
+      "pull_request": {
+        "number": 5579,
+        "url": "https://github.com/thedotmack/claude-mem/pull/5579",
+        "state": "open",
+        "merged": false,
+        "merged_at": null,
+        "head": "0dad2b743304d96bef765b9da5eee33a8ebca254"
+      },
+      "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
+      "regression_files": [
+        "tests/worker/work-view/work-product-deep-results.test.mjs"
+      ],
+      "runtime_build": {
+        "head": "0dad2b743304d96bef765b9da5eee33a8ebca254",
+        "source": "74fc454bc8e12f0b25dca98a10b1a372b067ee3e",
+        "run": 42635396114,
+        "job": 129222081856,
+        "files": [
+          "plugin/scripts/work-view-read-worker.cjs",
+          "plugin/scripts/work-view-read-worker.cjs.map",
+          "plugin/scripts/worker-service.cjs",
+          "plugin/scripts/worker-service.cjs.map",
+          "plugin/skills/request-progress/scripts/request-groups.mjs"
+        ]
+      },
+      "upstream_checks": [
+        {
+          "name": "Windows",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637044683",
+          "head": "0dad2b743304d96bef765b9da5eee33a8ebca254",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "CI",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637044746",
+          "head": "0dad2b743304d96bef765b9da5eee33a8ebca254",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "body": "## Problem\nA valid, deeply nested JSON result from a publishing tool overflows the recursive URL scan. One captured result can therefore interrupt work-product projection instead of showing the artifact it produced.\n\n## Changes\nTraverse nested results with an explicit stack, preserving depth-first link order and the existing URL-field filter. Track visited objects so in-memory cyclic responses also terminate.\n\n\n## Regression coverage\n\nExercises 20,000-level nested results, depth-first URL ordering, and cyclic in-memory responses; the cyclic case runs in a bounded child process.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `74fc454bc8e12f0b25dca98a10b1a372b067ee3e` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081856). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `0dad2b743304d96bef765b9da5eee33a8ebca254`.\n"
+    },
+    {
+      "number": 2,
+      "title": "fix(work-view): order lists by original activity time",
+      "branch": "fix/work-list-activity-order",
+      "pull_request": {
+        "number": 5580,
+        "url": "https://github.com/thedotmack/claude-mem/pull/5580",
+        "state": "open",
+        "merged": false,
+        "merged_at": null,
+        "head": "c74121e59fe89981fd8571dfbaa704ee450c3a8d"
+      },
+      "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
+      "regression_files": [
+        "tests/worker/work-view/work-list-activity-order.test.mjs"
+      ],
+      "runtime_build": {
+        "head": "c74121e59fe89981fd8571dfbaa704ee450c3a8d",
+        "source": "903a1c23ba5922362ca22227461b82dce7e2d3a8",
+        "run": 42635396114,
+        "job": 129222081517,
+        "files": [
+          "plugin/scripts/work-view-read-worker.cjs",
+          "plugin/scripts/work-view-read-worker.cjs.map",
+          "plugin/scripts/worker-service.cjs",
+          "plugin/scripts/worker-service.cjs.map",
+          "plugin/skills/request-progress/scripts/request-groups.mjs"
+        ]
+      },
+      "upstream_checks": [
+        {
+          "name": "CI",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42636124432",
+          "head": "c74121e59fe89981fd8571dfbaa704ee450c3a8d",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "name": "Windows",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42636124558",
+          "head": "c74121e59fe89981fd8571dfbaa704ee450c3a8d",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "body": "## Problem\nSynced work-state rows receive new local IDs. Although replay already uses original timestamps, the final list order still used local row IDs. Importing old work therefore moved stale lists above recent activity and could set a project’s last-updated time to its oldest imported list.\n\n## Changes\nOrder the final lists by their latest activity timestamp, retaining the existing row-ID tie break. The revision watermark still uses local IDs, so polling behavior is unchanged.\n\n\n## Regression coverage\n\nExercises delayed imports, project timestamps, equal-timestamp tie breaks, and the unchanged revision watermark.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `903a1c23ba5922362ca22227461b82dce7e2d3a8` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081517). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `c74121e59fe89981fd8571dfbaa704ee450c3a8d`.\n"
+    },
+    {
+      "number": 3,
+      "title": "fix(rules): preserve empty evidence in saved rules",
+      "branch": "fix/rule-empty-evidence",
+      "pull_request": {
+        "number": 5581,
+        "url": "https://github.com/thedotmack/claude-mem/pull/5581",
+        "state": "open",
+        "merged": false,
+        "merged_at": null,
+        "head": "52477ad17ac0ce7f2c4a4d88707999fd05502e56"
+      },
+      "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
+      "regression_files": [
+        "tests/worker/work-view/rule-empty-evidence.test.mjs"
+      ],
+      "runtime_build": {
+        "head": "d34263c571aaa0bfbf98c15ac4ec7245f669bf53",
+        "source": "d08898368bb838b7dd738a9900fe5cdd2100bd70",
+        "run": 42635396114,
+        "job": 129222081711,
+        "files": [
+          "plugin/scripts/work-view-read-worker.cjs",
+          "plugin/scripts/work-view-read-worker.cjs.map",
+          "plugin/scripts/worker-service.cjs",
+          "plugin/scripts/worker-service.cjs.map",
+          "plugin/skills/request-progress/scripts/request-groups.mjs"
+        ]
+      },
+      "upstream_checks": [
+        {
+          "name": "CI",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42640114967",
+          "head": "52477ad17ac0ce7f2c4a4d88707999fd05502e56",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "name": "Windows",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42640114794",
+          "head": "52477ad17ac0ce7f2c4a4d88707999fd05502e56",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "body": "## Problem\nSaved My Rules rows serialize an intentionally empty quote list as an empty string. Projection treated that value as missing and restored the old suggestion evidence, including quotes deliberately removed by the 2,000-character saved-row budget.\n\n## Changes\nUse field presence to distinguish saved empty evidence from legacy rows without a quotes field. Saved quotes remain authoritative; legacy rows retain their existing fallback.\n\n\n## Regression coverage\n\nExercises explicitly empty quotes, quote-budget removal, legacy rows without a quotes field, and replacement quotes.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `d08898368bb838b7dd738a9900fe5cdd2100bd70` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081711). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `d34263c571aaa0bfbf98c15ac4ec7245f669bf53`.\n"
+    },
+    {
+      "number": 4,
+      "title": "fix(work-view): use isolated atomic writes for ledger snapshots",
+      "branch": "fix/ledger-atomic-writes",
+      "pull_request": {
+        "number": 5582,
+        "url": "https://github.com/thedotmack/claude-mem/pull/5582",
+        "state": "open",
+        "merged": false,
+        "merged_at": null,
+        "head": "dbf9518c2265d354acd825ada01d075f14a3d895"
+      },
+      "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
+      "regression_files": [
+        "tests/worker/work-view/ledger-atomic-writes.test.mjs"
+      ],
+      "runtime_build": {
+        "head": "dbf9518c2265d354acd825ada01d075f14a3d895",
+        "source": "032a1522f435fce029e6021ec54a0bea3c1d0eb9",
+        "run": 42635396114,
+        "job": 129222081658,
+        "files": [
+          "plugin/scripts/work-view-read-worker.cjs",
+          "plugin/scripts/work-view-read-worker.cjs.map",
+          "plugin/scripts/worker-service.cjs",
+          "plugin/scripts/worker-service.cjs.map",
+          "plugin/skills/request-progress/scripts/request-groups.mjs"
+        ]
+      },
+      "upstream_checks": [
+        {
+          "name": "Windows",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637050270",
+          "head": "dbf9518c2265d354acd825ada01d075f14a3d895",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "CI",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637050153",
+          "head": "dbf9518c2265d354acd825ada01d075f14a3d895",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "body": "## Problem\nThe request-progress CLI and worker write ledger snapshots through the same fixed temporary filename. Concurrent writes can overwrite or rename another writer’s in-progress file; failed renames also leave temporary files behind.\n\n## Changes\nReuse the existing atomic JSON writer, with unique temporary files, completed-payload flushing and cleanup on failure. Preserve private 0600 permissions, the DB-first redaction hook and completion ordering.\n\n\n## Regression coverage\n\nExercises occupied temporary paths, rename failure cleanup, private file permissions, and redaction-hook ordering.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `032a1522f435fce029e6021ec54a0bea3c1d0eb9` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081658). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `dbf9518c2265d354acd825ada01d075f14a3d895`.\n"
+    },
+    {
+      "number": 5,
+      "title": "fix(search): keep multiline titles inside a single table row",
+      "branch": "fix/search-table-line-breaks",
+      "pull_request": {
+        "number": 5583,
+        "url": "https://github.com/thedotmack/claude-mem/pull/5583",
+        "state": "open",
+        "merged": false,
+        "merged_at": null,
+        "head": "c292f570e44369f1bd9e1053da849aa86e1f545e"
+      },
+      "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
+      "regression_files": [
+        "tests/worker/formatting-service-lines.test.mjs"
+      ],
+      "runtime_build": {
+        "head": "b67aba774695af8f283fd3d8d483773d53babc44",
+        "source": "7f7c837ed428f9091ae74bd090e983f2f1e296cd",
+        "run": 42635396114,
+        "job": 129222081736,
+        "files": [
+          "plugin/scripts/worker-service.cjs",
+          "plugin/scripts/worker-service.cjs.map"
+        ]
+      },
+      "upstream_checks": [
+        {
+          "name": "CI",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42640367208",
+          "head": "c292f570e44369f1bd9e1053da849aa86e1f545e",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "name": "Windows",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42640367275",
+          "head": "c292f570e44369f1bd9e1053da849aa86e1f545e",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "body": "## Problem\nObservation titles, session requests and captured prompts can contain line breaks. Interpolating them directly into search and timeline tables splits one result across Markdown rows and can make it disappear when the timeline is read back.\n\n## Changes\nNormalize line breaks in the six table-row formatters and the SearchManager timeline rows, including CRLF and Unicode line separators. Normalize prompt previews before applying the existing 60-character limit; stored text and full-detail responses remain unchanged.\n\n\n## Regression coverage\n\nEight regression cases cover six result row types, prompt-preview truncation, and SearchManager timeline rendering.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `7f7c837ed428f9091ae74bd090e983f2f1e296cd` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081736). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `b67aba774695af8f283fd3d8d483773d53babc44`.\n"
+    },
+    {
+      "number": 6,
+      "title": "fix(work-view): skip invalid observation file entries before naming products",
+      "branch": "fix/observation-product-file-types",
+      "pull_request": {
+        "number": 5585,
+        "url": "https://github.com/thedotmack/claude-mem/pull/5585",
+        "state": "open",
+        "merged": false,
+        "merged_at": null,
+        "head": "d1d07672f4138042ab0cfe7a545ac723de81adeb"
+      },
+      "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
+      "regression_files": [
+        "tests/worker/work-view/observation-product-file-types.test.mjs"
+      ],
+      "runtime_build": {
+        "head": "5544eedfc545a258e1a0e8db7f2d846386f99ca2",
+        "source": "a85128088209d1358d0144605d123c52664dbcc4",
+        "run": 42635396114,
+        "job": 129222081885,
+        "files": [
+          "plugin/scripts/work-view-read-worker.cjs",
+          "plugin/scripts/work-view-read-worker.cjs.map",
+          "plugin/scripts/worker-service.cjs",
+          "plugin/scripts/worker-service.cjs.map",
+          "plugin/skills/request-progress/scripts/request-groups.mjs"
+        ]
+      },
+      "upstream_checks": [
+        {
+          "name": "Windows",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637063753",
+          "head": "5544eedfc545a258e1a0e8db7f2d846386f99ca2",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "CI",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637064141",
+          "head": "5544eedfc545a258e1a0e8db7f2d846386f99ca2",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "body": "## Problem\nA saved observation can contain a mixed JSON file list. `fileKind` already rejects non-path entries, but projection still calls `basename` on them before checking that result. A null, number or object therefore throws and prevents the valid files in the same request from appearing.\n\n## Changes\nReturn early for rejected file entries before deriving a title. Preserve each valid file's original array index, which the file route uses to resolve the recorded path.\n\n\n## Regression coverage\n\nExercises mixed-type file lists, rejected string paths, generic index.html titles, and recorded-file lookup by the original array index.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `a85128088209d1358d0144605d123c52664dbcc4` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081885). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `5544eedfc545a258e1a0e8db7f2d846386f99ca2`.\n"
+    },
+    {
+      "number": 7,
+      "title": "perf(search): avoid repeated linear scans when ranking file histories",
+      "branch": "perf/hybrid-file-ranking-cost",
+      "pull_request": {
+        "number": 5586,
+        "url": "https://github.com/thedotmack/claude-mem/pull/5586",
+        "state": "open",
+        "merged": false,
+        "merged_at": null,
+        "head": "6f8e7a7868f2501d004977bb4c0817f26a1faae4"
+      },
+      "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
+      "regression_files": [
+        "tests/worker/search/strategies/hybrid-file-ranking-cost.test.mjs"
+      ],
+      "runtime_build": {
+        "head": "6f8e7a7868f2501d004977bb4c0817f26a1faae4",
+        "source": "b5698e827b6c700d932f13597086e22026167c29",
+        "run": 42635396114,
+        "job": 129222081682,
+        "files": [
+          "plugin/scripts/worker-service.cjs",
+          "plugin/scripts/worker-service.cjs.map"
+        ]
+      },
+      "upstream_checks": [
+        {
+          "name": "Windows",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637070263",
+          "head": "6f8e7a7868f2501d004977bb4c0817f26a1faae4",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "CI",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42637070219",
+          "head": "6f8e7a7868f2501d004977bb4c0817f26a1faae4",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "body": "## Problem\nFile recall repeatedly scans the growing ranked-ID array while appending metadata matches, then scans it again for every sort comparison. The in-memory ranking work grows quadratically for large histories even though membership and rank are fixed for the request.\n\n## Changes\nUse sets for duplicate/membership checks and a rank map for sorting hydrated rows. Preserve the semantic prefix, metadata fallback order, explicit date ordering, limits and session results.\n\n\n## Regression coverage\n\nExercises duplicate semantic IDs, unmatched IDs, explicit date order, empty intersections, and a 50,000-observation history.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `b5698e827b6c700d932f13597086e22026167c29` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081682). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `6f8e7a7868f2501d004977bb4c0817f26a1faae4`.\n"
+    },
+    {
+      "number": 8,
+      "title": "fix(work-view): remove stale group evidence when conversations move",
+      "branch": "fix/request-group-stale-links",
+      "pull_request": {
+        "number": 5587,
+        "url": "https://github.com/thedotmack/claude-mem/pull/5587",
+        "state": "open",
+        "merged": false,
+        "merged_at": null,
+        "head": "a2dbaa0fe6a1caaf5c58817ec8a58f1e0ce60833"
+      },
+      "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
+      "regression_files": [
+        "tests/worker/work-view/request-group-stale-links.test.mjs"
+      ],
+      "runtime_build": {
+        "head": "a2dbaa0fe6a1caaf5c58817ec8a58f1e0ce60833",
+        "source": "cc4413722d92a0c67e2bab7488231931465ad760",
+        "run": 42635396114,
+        "job": 129222081205,
+        "files": [
+          "plugin/scripts/work-view-read-worker.cjs.map",
+          "plugin/scripts/worker-service.cjs",
+          "plugin/scripts/worker-service.cjs.map",
+          "plugin/skills/request-progress/scripts/request-groups.mjs"
+        ]
+      },
+      "upstream_checks": [
+        {
+          "name": "CI",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42639244669",
+          "head": "a2dbaa0fe6a1caaf5c58817ec8a58f1e0ce60833",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "name": "Windows",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42639245019",
+          "head": "a2dbaa0fe6a1caaf5c58817ec8a58f1e0ce60833",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "body": "## Problem\nMoving or ignoring a conversation updates the membership map, but link cleanup runs only for the destination group. The previous group can retain evidence that names a conversation now belonging elsewhere, so its recorded explanation no longer matches its actual members.\n\n## Changes\nAfter applying all group and ignore decisions, prune each surviving group's links against final membership. Preserve links between remaining members and keep the stored input immutable.\n\n\n## Regression coverage\n\nExercises moved conversations, ignored conversations, unchanged membership, and preservation of the stored input.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `cc4413722d92a0c67e2bab7488231931465ad760` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081205). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `a2dbaa0fe6a1caaf5c58817ec8a58f1e0ce60833`.\n"
+    },
+    {
+      "number": 9,
+      "title": "fix(work-view): batch candidate history queries below SQLite limits",
+      "branch": "fix/request-candidate-query-batches",
+      "pull_request": {
+        "number": 5588,
+        "url": "https://github.com/thedotmack/claude-mem/pull/5588",
+        "state": "open",
+        "merged": false,
+        "merged_at": null,
+        "head": "0642adb05ebaf19faa81942bdd951ca274e34567"
+      },
+      "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
+      "regression_files": [
+        "tests/work-view/request-candidate-query-batches.test.mjs"
+      ],
+      "runtime_build": {
+        "head": "0642adb05ebaf19faa81942bdd951ca274e34567",
+        "source": "38e6e76f094710518182267bea11ad7a6b3a9344",
+        "run": 42635396114,
+        "job": 129222081554,
+        "files": [
+          "plugin/scripts/work-view-read-worker.cjs.map",
+          "plugin/scripts/worker-service.cjs",
+          "plugin/scripts/worker-service.cjs.map",
+          "plugin/skills/request-progress/scripts/request-groups.mjs"
+        ]
+      },
+      "upstream_checks": [
+        {
+          "name": "Windows",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42639256789",
+          "head": "0642adb05ebaf19faa81942bdd951ca274e34567",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "CI",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42639256726",
+          "head": "0642adb05ebaf19faa81942bdd951ca274e34567",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "body": "## Problem\nLarge history scans and explicit conversation selections build one SQL statement containing every session ID. Once the selection exceeds SQLite's bound-parameter limit, the request-group reader fails instead of returning the owner's recorded work.\n\n## Changes\nRead conversation selections in batches of 250 key pairs and related prompts, work-state writes, observation counts and tool activity in batches of 500 session IDs. Deduplicate session IDs before the related queries so repeated keys cannot duplicate asks. Preserve the final chronological ordering and existing activity projections. Finalize each prepared statement in a finally block.\n\n\n## Regression coverage\n\nExercises 35,000 sessions, a 17,000-conversation selection, duplicate keys across batches, empty selections, and data in the final batch.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `38e6e76f094710518182267bea11ad7a6b3a9344` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081554). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `0642adb05ebaf19faa81942bdd951ca274e34567`.\n"
+    },
+    {
+      "number": 10,
+      "title": "fix(work-view): replay owner goals in event order",
+      "branch": "fix/owner-goals-event-order",
+      "pull_request": {
+        "number": 5589,
+        "url": "https://github.com/thedotmack/claude-mem/pull/5589",
+        "state": "open",
+        "merged": false,
+        "merged_at": null,
+        "head": "7a8af27c46224b6fd2dbe9a307e0f8d3562c8526"
+      },
+      "implementation_base": "989a98a2fb7978354497df46c4e17101f54ba9a3",
+      "regression_files": [
+        "tests/work-view/owner-goals-event-order.test.mjs"
+      ],
+      "runtime_build": {
+        "head": "3da7bc602db017df72edeaa46f9d6608544d6c64",
+        "source": "3296271886b77e44cedb937b9f2bde493f843358",
+        "run": 42635396114,
+        "job": 129222081685,
+        "files": [
+          "plugin/scripts/worker-service.cjs",
+          "plugin/scripts/worker-service.cjs.map",
+          "plugin/skills/request-progress/scripts/request-groups.mjs"
+        ]
+      },
+      "upstream_checks": [
+        {
+          "name": "Windows",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42641168650",
+          "head": "7a8af27c46224b6fd2dbe9a307e0f8d3562c8526",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "name": "CI",
+          "url": "https://github.com/thedotmack/claude-mem/actions/runs/42641168713",
+          "head": "7a8af27c46224b6fd2dbe9a307e0f8d3562c8526",
+          "status": "in_progress",
+          "conclusion": null
+        }
+      ],
+      "body": "## Problem\nThe owner-goals reader folds patches in local insertion order. An older event imported after a newer decision therefore overwrites that decision: completed goals can become active again, and earlier summaries or cleared map paths can replace current state.\n\n## Changes\nReplay owner-goal patches by their recorded creation time, with the existing row ID as a deterministic tie-breaker. This changes state reconstruction in the CLI goal reader; it is separate from sorting already-reconstructed work lists for display.\n\n\n## Regression coverage\n\nExercises late-imported state after completion, summaries and cleared map paths, and equal-timestamp ordering.\n\n## Validation and runtime artifacts\n\nThe root TypeScript check and full `npm run build` passed at source commit `3296271886b77e44cedb937b9f2bde493f843358` in the [isolated build job](https://github.com/Afloat16/claude-mem/actions/runs/42635396114/job/129222081685). The job also rebuilt the common base with the same installed dependencies and compared generated Node runtime artifacts. This PR includes the changed generated runtime bundles and source maps, so the installed plugin and CLI receive the source correction.\n\nThe upstream CI checks are attached to this PR. The runtime-artifact commit is `3da7bc602db017df72edeaa46f9d6608544d6c64`.\n"
+    }
+  ],
+  "ci_notes": {
+    "5580": "The latest upstream build job failed during onnxruntime-node install with ETIMEDOUT; subsequent integration errors followed missing dependencies. The other six CI jobs and Windows passed. A read-only exact-source rerun of the original build/test lane is running in Afloat16/claude-mem. The upstream gate remains failed until its maintainers rerun it."
+  }
+}
