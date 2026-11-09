@@ -1,0 +1,68 @@
+name: Native PE overflow verification
+on:
+  push:
+    branches:
+      - validation/native-pe-overflow-20261109
+permissions:
+  contents: read
+jobs:
+  before:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: PE rejected-slot regression before correction
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 15f005334071b7666d60d3a50549fd3082771165
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: contribution-formats
+          cache-on-failure: 'true'
+      - name: Reproduce the rejected slot being filled from another row
+        run: cargo test --locked -p craft-anything-formats --test pe_virtual_address_overflow an_overflowed_slot_is_not_recovered_from_a_same_named_valid_import -- --exact
+  after:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: PE overflow correction and L0 checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: c41af7fb99b3dddebfc45fe5a806a3144f7c4d20
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: contribution-formats
+          cache-on-failure: 'true'
+      - name: Formatting
+        run: cargo fmt --all -- --check
+      - name: Complete formats tests
+        if: always()
+        run: cargo test --locked -p craft-anything-formats
+      - name: Formats lint
+        if: always()
+        run: cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Layer boundaries
+        if: always()
+        run: cargo xtask layers
+      - name: Lock discipline
+        if: always()
+        run: cargo xtask locks
+      - name: Tracked-content secret scan
+        if: always()
+        run: cargo xtask secrets
+      - name: L0 through L2 WebAssembly compatibility
+        if: always()
+        run: cargo xtask wasm
+      - name: Dependency lockfile remains unchanged
+        if: always()
+        run: git diff --exit-code -- Cargo.lock
