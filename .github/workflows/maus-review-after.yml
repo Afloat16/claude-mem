@@ -1,0 +1,122 @@
+name: OpenMaus review correction verification
+on:
+  push:
+    branches:
+      - validation/maus-review-after-20261109
+permissions:
+  contents: read
+jobs:
+  corrections:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Corrected OpenMaus PR ${{ matrix.pr }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pr: 5087
+            case: totp
+            sha: a468ff2b308da30af96143b09880fed69a003de9
+            source: server/totp.ts
+            tests: server/totp.test.ts
+          - pr: 5090
+            case: speech
+            sha: b820dff83ae58238d90f68c54319400187661a75
+            source: server/tts/speech-text.ts
+            tests: server/tts/speech-text.test.ts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/OpenMausBot
+          ref: ${{ matrix.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - name: Frozen dependency installation
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Focused regression tests
+        run: pnpm exec vitest run --environment node --maxWorkers=1 --no-file-parallelism ${{ matrix.tests }}
+      - name: Full project typecheck
+        if: always()
+        run: pnpm typecheck
+      - name: Changed file lint
+        if: always()
+        run: pnpm exec oxlint --deny-warnings ${{ matrix.source }} ${{ matrix.tests }}
+      - name: Isolated production fixture
+        env:
+          REVIEW_CASE: ${{ matrix.case }}
+        run: |
+          node --experimental-strip-types --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import { mkdirSync, writeFileSync } from "node:fs";
+          import { join } from "node:path";
+          import { launchVerificationServer, runControlOmb } from "./scripts/control-omb.ts";
+          import { VaultStore } from "./server/vault-store.ts";
+          import { hotp, totpCode } from "./server/totp.ts";
+          import { loginPlace } from "./shared/logins.ts";
+          
+          const fixture = await launchVerificationServer();
+          const evidence = { fixture: fixture.info, checks: [] };
+          console.log(JSON.stringify({ fixture: fixture.info }));
+          try {
+            const doctor = await runControlOmb(["doctor", "--url", fixture.info.url]);
+            evidence.doctor = doctor;
+            assert.equal(doctor.ok, true);
+            const post = (path, body) => fetch(fixture.info.url + path, {
+              method: "POST",
+              headers: { "content-type": "application/json", origin: fixture.info.url },
+              body: JSON.stringify(body),
+              signal: AbortSignal.timeout(10_000),
+            });
+            if (process.env.REVIEW_CASE === "totp") {
+              const legacy = { secret: "JBSWY3DPEHPK3PXPA", algorithm: "SHA1", digits: 6, period: 30 };
+              const dataDir = join(fixture.info.dataDir, "legacy-totp-probe");
+              mkdirSync(dataDir);
+              new VaultStore({ dataDir }).create({
+                ...loginPlace("accounts.example.com", [], false),
+                username: "fixture", password: "fixture-password", totp: legacy, source: "settings", bots: "all",
+              });
+              const saved = new VaultStore({ dataDir }).usableFor("accounts.example.com", "fixture-bot")[0];
+              assert.deepEqual(saved.totp, legacy);
+              assert.equal(totpCode(saved.totp, 59_000), hotp(Buffer.from("48656c6c6f21deadbeef", "hex"), 1, 6));
+              const input = { site: "accounts.example.com", username: "fixture", password: "fixture-password", bots: "all" };
+              const rejected = await post("/api/logins", { ...input, totp: legacy.secret });
+              assert.equal(rejected.status, 400);
+              const accepted = await post("/api/logins", { ...input, totp: "JBSWY3DPEHPK3PXP" });
+              assert.equal(accepted.status, 201);
+              evidence.checks.push("encrypted saved-key reload preserves code bytes", "new incomplete-group setup rejected", "valid setup accepted");
+            } else {
+              const word = "a".repeat(320) + ".";
+              const punctuation = await post("/api/tts/prepare", { text: word });
+              assert.equal(punctuation.status, 200);
+              assert.deepEqual((await punctuation.json()).utterances, [word]);
+              const text = "カ\u3099".repeat(321);
+              const response = await post("/api/tts/prepare", { text });
+              assert.equal(response.status, 200);
+              const { utterances } = await response.json();
+              assert.ok(utterances.length > 1);
+              assert.ok(utterances[0].length <= 90);
+              assert.ok(utterances.every(chunk => chunk.length > 0 && chunk.length <= 320 && /^(?:カ\u3099)+$/u.test(chunk)));
+              assert.equal(utterances.join(""), text);
+              evidence.checks.push("prepare route keeps terminal punctuation attached", "prepare route bounds Katakana without splitting graphemes");
+            }
+            console.log(JSON.stringify({ checks: evidence.checks, doctor: "passed" }));
+          } finally {
+            writeFileSync("review-fixture.json", JSON.stringify(evidence, null, 2) + "\n");
+            await fixture.close();
+          }
+          NODE
+      - name: Keep isolated fixture evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maus-review-${{ matrix.pr }}-${{ matrix.sha }}
+          path: |
+            review-fixture.json
+            /tmp/openmausbot-verification-evidence/*.log
+          if-no-files-found: ignore
