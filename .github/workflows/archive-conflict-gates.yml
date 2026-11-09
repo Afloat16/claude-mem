@@ -1,0 +1,147 @@
+name: Archive conflict merge source gates
+on:
+  push:
+    branches:
+      - validation/archive-conflict-gates-20261109
+permissions:
+  contents: read
+jobs:
+  conflict-gates:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Verify only four conflict-resolved heads
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - name: Keep sequential compilation outside checkout
+        run: echo "CARGO_TARGET_DIR=$RUNNER_TEMP/archive-conflict-target" >> "$GITHUB_ENV"
+      - name: Check out Installer 1394 exact source
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: c88767b601aef15b8e2604b607f069734fef5a09
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - name: Installer 1394 formatting
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "c88767b601aef15b8e2604b607f069734fef5a09"
+          cargo fmt --all -- --check
+      - name: Installer 1394 regression tests
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "c88767b601aef15b8e2604b607f069734fef5a09"
+          cargo test --locked -p craft-anything-formats -p craft-anything-engines --no-fail-fast
+      - name: Installer 1394 clippy
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "c88767b601aef15b8e2604b607f069734fef5a09"
+          cargo clippy --locked -p craft-anything-formats -p craft-anything-engines --all-targets -- -D warnings
+      - name: Installer 1394 L0 gates
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "c88767b601aef15b8e2604b607f069734fef5a09"
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out Archive 2 exact source
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 2c5df5307f4733355a4e88be1ebf58bbfb0b95d1
+          persist-credentials: false
+      - name: Archive 2 formatting
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "2c5df5307f4733355a4e88be1ebf58bbfb0b95d1"
+          cargo fmt --all -- --check
+      - name: Archive 2 regression tests
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "2c5df5307f4733355a4e88be1ebf58bbfb0b95d1"
+          cargo test --locked -p craft-anything-formats --no-fail-fast
+      - name: Archive 2 clippy
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "2c5df5307f4733355a4e88be1ebf58bbfb0b95d1"
+          cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Archive 2 L0 gates
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "2c5df5307f4733355a4e88be1ebf58bbfb0b95d1"
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out Archive 6 exact source
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: fc220b1a29572e2b2c17ed2b948e915c54fa6de6
+          persist-credentials: false
+      - name: Archive 6 formatting
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "fc220b1a29572e2b2c17ed2b948e915c54fa6de6"
+          cargo fmt --all -- --check
+      - name: Archive 6 regression tests
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "fc220b1a29572e2b2c17ed2b948e915c54fa6de6"
+          cargo test --locked -p craft-anything-formats --no-fail-fast
+      - name: Archive 6 clippy
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "fc220b1a29572e2b2c17ed2b948e915c54fa6de6"
+          cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Archive 6 L0 gates
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "fc220b1a29572e2b2c17ed2b948e915c54fa6de6"
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out Archive 9 exact source
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 5d18e4ee2a33fc75e84d2322160b0a02100b755f
+          persist-credentials: false
+      - name: Archive 9 formatting
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "5d18e4ee2a33fc75e84d2322160b0a02100b755f"
+          cargo fmt --all -- --check
+      - name: Archive 9 regression tests
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "5d18e4ee2a33fc75e84d2322160b0a02100b755f"
+          cargo test --locked -p craft-anything-formats --no-fail-fast
+      - name: Archive 9 clippy
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "5d18e4ee2a33fc75e84d2322160b0a02100b755f"
+          cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Archive 9 L0 gates
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "5d18e4ee2a33fc75e84d2322160b0a02100b755f"
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
