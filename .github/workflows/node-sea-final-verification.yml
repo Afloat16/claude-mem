@@ -38,9 +38,9 @@ jobs:
           before_status=${PIPESTATUS[0]}
           set -e
           test "$before_status" -ne 0
-          rg -F 'test argument_retention_is_bounded_even_for_empty_strings ... FAILED' /tmp/node-before.log
-          rg 'left: 200001' /tmp/node-before.log
-          rg 'right: 200000' /tmp/node-before.log
+          grep -F 'test argument_retention_is_bounded_even_for_empty_strings ... FAILED' /tmp/node-before.log
+          grep 'left: 200001' /tmp/node-before.log
+          grep 'right: 200000' /tmp/node-before.log
       - uses: actions/checkout@v4
         with:
           repository: Afloat16/craft-anything
