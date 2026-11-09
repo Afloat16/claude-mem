@@ -1,0 +1,65 @@
+name: OpenMaus review regression baseline
+on:
+  push:
+    branches:
+      - validation/maus-review-before-20261109
+permissions:
+  contents: read
+jobs:
+  regressions:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Published PR ${{ matrix.pr }} before review correction
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pr: 5087
+            sha: 65f33fccb3ef0ec8ac6cc89c2708edd334f6d1c4
+          - pr: 5090
+            sha: 216ba4ea3b95eed7fcf344f6987f9c88f47a6d59
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/OpenMausBot
+          ref: ${{ matrix.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: TOTP persisted-key regression
+        if: matrix.pr == 5087
+        run: |
+          node --experimental-strip-types --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import test from "node:test";
+          import { hotp, parseTotpKey, totpCode } from "./server/totp.ts";
+          test("existing incomplete-group secret preserves its decoded bytes", () => {
+            const saved = { secret: "JBSWY3DPEHPK3PXPA", algorithm: "SHA1", digits: 6, period: 30 };
+            assert.equal(totpCode(saved, 59_000), hotp(Buffer.from("48656c6c6f21deadbeef", "hex"), 1, 6));
+          });
+          test("new incomplete-group input stays rejected", () => {
+            assert.equal(parseTotpKey("JBSWY3DPEHPK3PXPA"), null);
+          });
+                    NODE
+      - name: Speech chunk regressions
+        if: matrix.pr == 5090
+        run: |
+          node --experimental-strip-types --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import test from "node:test";
+          import { speakable, toUtterances } from "./server/tts/speech-text.ts";
+          test("a terminal period stays attached to an indivisible word", () => {
+            const text = "a".repeat(320) + ".";
+            assert.deepEqual(toUtterances(text), [text]);
+          });
+          test("a long decomposed Katakana word obeys both caps", () => {
+            const text = "カ\u3099".repeat(321);
+            const chunks = toUtterances(text, { maxChars: 320, firstBlockMaxChars: 91 });
+            assert.ok(chunks.length > 1);
+            assert.ok(chunks[0].length <= 91);
+            assert.ok(chunks.every(chunk => chunk.length > 0 && chunk.length <= 320 && /^(?:カ\u3099)+$/u.test(chunk)));
+            assert.equal(chunks.join(""), speakable(text));
+          });
+                    NODE
