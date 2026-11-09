@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Afloat16/OpenMausBot
-          ref: 683d1fe6c6fd6a4827556dc3aee605ba91228c8c
+          ref: 91d75f1d17085115e6ed10e083f98cc71d2c5e7e
           persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -33,7 +33,7 @@ jobs:
           node --input-type=module <<'NODE'
           import { readFileSync } from 'node:fs';
           const report = JSON.parse(readFileSync(process.env.RUNNER_TEMP + '/numeric-after.json', 'utf8'));
-          console.log(JSON.stringify({ source_sha: '683d1fe6c6fd6a4827556dc3aee605ba91228c8c', passed: report.numPassedTests, failed: report.numFailedTests, pending: report.numPendingTests, files: report.testResults.map(file => ({ name: file.name, status: file.status, tests: file.assertionResults.length })), failures: report.testResults.flatMap(file => file.assertionResults).filter(test => test.status === 'failed').map(test => ({ name: test.fullName, messages: test.failureMessages })) }, null, 2));
+          console.log(JSON.stringify({ source_sha: '91d75f1d17085115e6ed10e083f98cc71d2c5e7e', passed: report.numPassedTests, failed: report.numFailedTests, pending: report.numPendingTests, files: report.testResults.map(file => ({ name: file.name, status: file.status, tests: file.assertionResults.length })), failures: report.testResults.flatMap(file => file.assertionResults).filter(test => test.status === 'failed').map(test => ({ name: test.fullName, messages: test.failureMessages })) }, null, 2));
           NODE
           exit "$result"
       - name: Full project typecheck
@@ -49,14 +49,14 @@ jobs:
           import { writeFileSync } from 'node:fs';
           import { launchVerificationServer, runControlOmb } from './scripts/control-omb.ts';
           const fixture = await launchVerificationServer();
-          const evidence = { source_sha: '683d1fe6c6fd6a4827556dc3aee605ba91228c8c', fixture: fixture.info, checks: [] };
+          const evidence = { source_sha: '91d75f1d17085115e6ed10e083f98cc71d2c5e7e', fixture: fixture.info, checks: [] };
           console.log(JSON.stringify({ fixture: fixture.info }));
           try {
             const doctor = await runControlOmb(['doctor', '--url', fixture.info.url]);
             evidence.doctor = doctor;
             assert.equal(doctor.ok, true);
             evidence.checks.push('official isolated fake-engine fixture doctor');
-            console.log(JSON.stringify({ source_sha: '683d1fe6c6fd6a4827556dc3aee605ba91228c8c', doctor: 'passed' }));
+            console.log(JSON.stringify({ source_sha: '91d75f1d17085115e6ed10e083f98cc71d2c5e7e', doctor: 'passed' }));
           } finally {
             writeFileSync('numeric-fixture.json', JSON.stringify(evidence, null, 2) + '\n');
             await fixture.close();
@@ -66,7 +66,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: numeric-after-683d1fe6c6fd6a4827556dc3aee605ba91228c8c
+          name: numeric-after-91d75f1d17085115e6ed10e083f98cc71d2c5e7e
           path: |
             ${{ runner.temp }}/numeric-after.json
             numeric-fixture.json
