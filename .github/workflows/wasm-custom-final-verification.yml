@@ -40,9 +40,9 @@ jobs:
           test "$before_status" -ne 0
           for regression in repeated_name_sections_share_a_limit_but_can_update_retained_functions producer_values_are_bounded_across_repeated_sections empty_producer_fields_still_spend_the_global_field_limit existing_per_section_limits_are_reported_as_truncation
           do
-            rg -F "test $regression ... FAILED" /tmp/wasm-before.log
+            grep -F "test $regression ... FAILED" /tmp/wasm-before.log
           done
-          rg -F 'test ordinary_names_and_producers_remain_complete ... ok' /tmp/wasm-before.log
+          grep -F 'test ordinary_names_and_producers_remain_complete ... ok' /tmp/wasm-before.log
       - uses: actions/checkout@v4
         with:
           repository: Afloat16/craft-anything
