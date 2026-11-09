@@ -1,0 +1,32 @@
+name: Billion corrected SimHash commit verification
+on:
+  push:
+    branches:
+      - validation/billion-simhash-corrected-goldens-20261109
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Verify committed SimHash correction and regenerated goldens
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/billion-context
+          ref: c26c68a93fb11035a0e02cd08b171a295abbddb4
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-fund --no-audit
+      - name: Typecheck and rebuild local package exports
+        run: npm run typecheck
+      - name: SimHash, persisted render and storage restart regression suites
+        run: node --import ./tests/preload-storage-baseline.mjs --import ./tests/preload-test-env.mjs --import tsx --test tests/simhash-vote-range.test.ts tests/prefix-affinity-simhash.test.ts tests/golden-storage-render.test.ts tests/storage-engine-proofs.test.ts
+      - name: Production bundle and distribution checks
+        run: npm run build
+      - name: Source and expected golden files remain unchanged
+        run: git diff --exit-code -- src tests/golden/storage-render tests/simhash-vote-range.test.ts
