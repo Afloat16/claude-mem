@@ -1,0 +1,54 @@
+name: OpenMaus numeric argument baseline
+on:
+  push:
+    branches:
+      - validation/openmaus-numeric-before-20261109
+permissions:
+  contents: read
+jobs:
+  baseline:
+    if: github.repository == 'Afloat16/claude-mem'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/OpenMausBot
+          ref: afcfd6abf13dbcabd2ebeac11f6fdae053a81e5e
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install declared dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Prove the reported numeric regressions on unchanged production code
+        shell: bash
+        run: |
+          set +e
+          pnpm exec vitest run --environment node --maxWorkers=1 --no-file-parallelism server/connector-arguments.test.ts -t 'numeric text preservation' --reporter=json --outputFile="$RUNNER_TEMP/numeric-before.json"
+          result=$?
+          set -e
+          if [ "$result" -ne 1 ]; then
+            echo "Expected the unchanged source regression run to exit 1, got $result"
+            exit 1
+          fi
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const report = JSON.parse(readFileSync(process.env.RUNNER_TEMP + '/numeric-before.json', 'utf8'));
+          assert.equal(report.numFailedTests, 18);
+          assert.equal(report.numPassedTests, 4);
+          const failures = report.testResults.flatMap(result => result.assertionResults).filter(result => result.status === 'failed');
+          assert.equal(failures.length, 18);
+          for (const phrase of ['underflows', 'rounds to an integer', 'significant digits', 'root JSON text', 'nested object text', 'array text', 'separate safe field']) {
+            assert.ok(failures.some(result => result.fullName.includes(phrase)), phrase);
+          }
+          console.log(JSON.stringify({ production_source: 'a05ee1605344ddd79ef35fd52637864040d2ec86', test_only_head: 'afcfd6abf13dbcabd2ebeac11f6fdae053a81e5e', expected_failures: report.numFailedTests, compatibility_passes: report.numPassedTests, failures: failures.map(result => result.fullName) }, null, 2));
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: numeric-before-results
+          path: ${{ runner.temp }}/numeric-before.json
