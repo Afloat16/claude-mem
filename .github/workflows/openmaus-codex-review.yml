@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Afloat16/OpenMausBot
-          ref: a0277e17ec943ef064f4949335a26ceb1aaae3f2
+          ref: 6fe4366c0b17651bed6c87e42f0c6e99cd5b2ba8
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
