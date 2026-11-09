@@ -1,0 +1,67 @@
+name: WebAssembly custom metadata final verification
+on:
+  push:
+    branches:
+      - validation/wasm-custom-final-20261109
+permissions:
+  contents: read
+jobs:
+  wasm-metadata:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: WebAssembly metadata before and after
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CARGO_TERM_COLOR: never
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: ba8dcfa622a8354149542d8405c9158805548fc5
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: contribution-formats
+          cache-on-failure: 'true'
+      - name: Confirm inventory regressions on the original implementation
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "ba8dcfa622a8354149542d8405c9158805548fc5"
+          set +e
+          cargo test --locked -p craft-anything-formats --test wasm_custom_inventory_budget 2>&1 | tee /tmp/wasm-before.log
+          before_status=${PIPESTATUS[0]}
+          set -e
+          test "$before_status" -ne 0
+          for regression in repeated_name_sections_share_a_limit_but_can_update_retained_functions producer_values_are_bounded_across_repeated_sections empty_producer_fields_still_spend_the_global_field_limit existing_per_section_limits_are_reported_as_truncation
+          do
+            rg -F "test $regression ... FAILED" /tmp/wasm-before.log
+          done
+          rg -F 'test ordinary_names_and_producers_remain_complete ... ok' /tmp/wasm-before.log
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 232100030acee41d80523bdcc7998fd0a1998aa3
+          persist-credentials: false
+          clean: false
+      - name: Verify the exact fixed source
+        run: test "$(git rev-parse HEAD)" = "232100030acee41d80523bdcc7998fd0a1998aa3"
+      - name: Formats tests
+        run: cargo test --locked -p craft-anything-formats
+      - name: Formatting
+        run: cargo fmt --all -- --check
+      - name: Formats lint
+        run: cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Layer boundaries
+        run: cargo xtask layers
+      - name: Lock and await checks
+        run: cargo xtask locks
+      - name: Secret checks
+        run: cargo xtask secrets
+      - name: Browser analysis build
+        run: cargo xtask wasm
