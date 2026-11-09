@@ -1,0 +1,43 @@
+name: Billion affinity Windows abort verification
+on:
+  push:
+    branches:
+      - validation/billion-affinity-windows-abort-20261109
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Compare the Windows abort regression on base and affinity fix
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/billion-context
+          ref: 4be21b08ed3da8b69d1800a10a9c0b9c5a707f71
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies and build local packages
+        run: |
+          npm install --ignore-scripts --no-fund --no-audit
+          npm run typecheck
+      - name: Test unchanged base abort behavior
+        continue-on-error: true
+        run: node --import ./tests/preload-storage-baseline.mjs --import ./tests/preload-test-env.mjs --import tsx --test --test-name-pattern "^abort x proxy-openai-sse:" tests/wire-exit-matrix.test.ts
+      - name: Check out exact affinity snapshot correction
+        if: always()
+        run: |
+          git fetch --no-tags https://github.com/Afloat16/billion-context.git caf14bb702346eae823ede9b46d501952b3cca4d
+          git checkout --detach caf14bb702346eae823ede9b46d501952b3cca4d
+      - name: Test affinity fix abort behavior
+        if: always()
+        run: node --import ./tests/preload-storage-baseline.mjs --import ./tests/preload-test-env.mjs --import tsx --test --test-name-pattern "^abort x proxy-openai-sse:" tests/wire-exit-matrix.test.ts
+      - name: Test affinity snapshot position and alignment suites
+        if: always()
+        run: node --import ./tests/preload-storage-baseline.mjs --import ./tests/preload-test-env.mjs --import tsx --test tests/affinity-snapshot-position.test.ts tests/prefix-affinity-simhash.test.ts
