@@ -1,0 +1,63 @@
+name: OpenMaus numeric text fallback baseline
+on:
+  push:
+    branches:
+      - validation/openmaus-numeric-fallback-before-20261109
+permissions:
+  contents: read
+jobs:
+  fallback:
+    if: github.repository == 'Afloat16/claude-mem'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/OpenMausBot
+          ref: 683d1fe6c6fd6a4827556dc3aee605ba91228c8c
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Prove both plain-text fallback regressions at the intermediate head
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/fallback-before.mjs" <<'NODE'
+          import test from 'node:test';
+          import assert from 'node:assert/strict';
+          import { pathToFileURL } from 'node:url';
+          const { fitArguments } = await import(pathToFileURL(process.env.GITHUB_WORKSPACE + '/server/connector-arguments.ts').href);
+          for (const kind of ['string items', 'one-field objects']) {
+            test('numeric-looking plain text fallback for ' + kind, () => {
+              const items = kind === 'string items' ? { type: 'string' } : { type: 'object', properties: { use_case: { type: 'string' } }, required: ['use_case'] };
+              const schema = { type: 'object', properties: { values: { type: 'array', items } } };
+              for (const value of ['9007199254740993', '1e400', '0.10000000000000001', '{"value":9007199254740993}', '{"value":1e400}']) {
+                const expected = kind === 'string items' ? [value] : [{ use_case: value }];
+                assert.deepEqual(fitArguments({ values: value }, schema).args, { values: expected });
+              }
+            });
+          }
+          NODE
+          set +e
+          node --experimental-strip-types --test --test-reporter=tap "$RUNNER_TEMP/fallback-before.mjs" > "$RUNNER_TEMP/fallback-before.tap" 2>&1
+          result=$?
+          set -e
+          cat "$RUNNER_TEMP/fallback-before.tap"
+          if [ "$result" -ne 1 ]; then
+            echo "Expected the intermediate fallback probe to exit 1, got $result"
+            exit 1
+          fi
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const tap = readFileSync(process.env.RUNNER_TEMP + '/fallback-before.tap', 'utf8');
+          assert.match(tap, /^# fail 2$/m);
+          assert.match(tap, /^# pass 0$/m);
+          assert.equal((tap.match(/^not ok /gm) ?? []).length, 2);
+          console.log(JSON.stringify({ source_sha: '683d1fe6c6fd6a4827556dc3aee605ba91228c8c', expected_failed_controls: 2 }));
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: numeric-fallback-before
+          path: ${{ runner.temp }}/fallback-before.tap
