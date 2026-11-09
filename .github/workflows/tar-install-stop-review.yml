@@ -1,0 +1,62 @@
+name: Tar installer metadata stop regression
+on:
+  push:
+    branches:
+      - validation/tar-install-stop-review-20261109
+permissions:
+  contents: read
+jobs:
+  tar-installer:
+    if: github.repository == 'Afloat16/claude-mem'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - name: Keep sequential compilation outside checkout
+        run: echo "CARGO_TARGET_DIR=$RUNNER_TEMP/tar-install-review-target" >> "$GITHUB_ENV"
+      - name: Check out unchanged production with regressions
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 24d844ce89c6ea660e41f30be676411b25b06490
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - name: Reproduce four writes on stopped listings and retain two controls
+        run: |
+          git rev-parse HEAD
+          set +e
+          cargo test --locked -p craft-anything-engines tar_metadata_guard -- --nocapture 2>&1 | tee "$RUNNER_TEMP/tar-install-before.log"
+          result=${PIPESTATUS[0]}
+          set -e
+          test "$result" -ne 0
+          grep -F 'test result: FAILED. 2 passed; 4 failed;' "$RUNNER_TEMP/tar-install-before.log"
+          grep -F 'result: Ok(1)' "$RUNNER_TEMP/tar-install-before.log"
+      - name: Check out corrected exact source
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: cb2d7241db9450ff48f5dfa621e4adac1ca84696
+          persist-credentials: false
+      - name: Check formatting
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: Test formats and engines
+        if: always()
+        run: cargo test --locked -p craft-anything-formats -p craft-anything-engines --no-fail-fast
+      - name: Lint formats and engines
+        if: always()
+        run: cargo clippy --locked -p craft-anything-formats -p craft-anything-engines --all-targets -- -D warnings
+      - name: Check layers locks secrets and wasm
+        if: always()
+        run: |
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
