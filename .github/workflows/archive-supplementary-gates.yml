@@ -1,0 +1,158 @@
+name: Archive exact source supplementary gates
+on:
+  push:
+    branches:
+      - validation/archive-gates-20261109
+permissions:
+  contents: read
+jobs:
+  archive-gates:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Archive 8 regression and archive L0 gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CARGO_TARGET_DIR: ${{ runner.temp }}/craft-archive-target
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - name: Check out archive 8 exact source
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: de2c63908909cab675887103921ed2601b1bae9b
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - name: Archive 8 formatting and regression tests
+        run: |
+          cargo fmt --all -- --check
+          cargo test --locked -p craft-anything-formats
+          cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Archive 8 L0 gates
+        run: |
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 1 exact source
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: a5bcfaedcb1ad67c8bb7f06c7143befc8292409c
+          persist-credentials: false
+      - name: Archive 1 L0 gates
+        run: |
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 2 exact source
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 351002eab7e69791a9eb6cd3764c35e1c3cbc130
+          persist-credentials: false
+      - name: Archive 2 L0 gates
+        run: |
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 3 exact source
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: dde4aa0233be968f9b55bd3316204b880b8dbf2e
+          persist-credentials: false
+      - name: Archive 3 L0 gates
+        run: |
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 4 exact source
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 3f3ec6a4bd97bb987d9cad906ce4b2f5028ff88b
+          persist-credentials: false
+      - name: Archive 4 L0 gates
+        run: |
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 5 exact source
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 4cac36386e426e332bd89cb2cfa63894f3a367a5
+          persist-credentials: false
+      - name: Archive 5 L0 gates
+        run: |
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 6 exact source
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 61fdab39da4849eb5a84196df53c55e19c869134
+          persist-credentials: false
+      - name: Archive 6 L0 gates
+        run: |
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 7 exact source
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 5da8880d3b56785498cf0c09ae46f300f070322d
+          persist-credentials: false
+      - name: Archive 7 L0 gates
+        run: |
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 9 exact source
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: daaeb4fe6c2db3f805fb9b02f9fbdfe55d80eb4a
+          persist-credentials: false
+      - name: Archive 9 L0 gates
+        run: |
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out archive 10 exact source
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: cd5d8c7006070db9b220d9397346de9cecd89900
+          persist-credentials: false
+      - name: Archive 10 L0 gates
+        run: |
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+
