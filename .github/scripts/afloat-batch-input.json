@@ -1,0 +1,64 @@
+[
+  {
+    "slug": "work-state-payload-filter",
+    "branch": "afloat/20261110-work-state-payload-filter",
+    "source_sha": "4523617022982e801d971d03e263e26537b10174",
+    "original_base": "0e02f46722da9c30f9da6ebf58a71bd21f7e872c",
+    "regression_tests": [
+      "tests/sqlite/work-state-payload-filter.test.ts"
+    ],
+    "tests": [
+      "tests/sqlite/work-state-payload-filter.test.ts",
+      "tests/sqlite/session-store-work-state.test.ts",
+      "tests/worker/work-view/shared-record-filtering.test.ts",
+      "tests/worker/sync/work-state-sync.test.ts",
+      "tests/context/context-work-state-order.test.ts",
+      "tests/context/sections/work-state-renderer.test.ts"
+    ]
+  },
+  {
+    "slug": "sync-tombstone-vector-cleanup",
+    "branch": "afloat/20261110-sync-tombstone-vector-cleanup",
+    "source_sha": "ba4da8a46fb26eabc22d62591ade883e23de70cc",
+    "original_base": "0e02f46722da9c30f9da6ebf58a71bd21f7e872c",
+    "regression_tests": [
+      "tests/worker/sync/sync-tombstone-vector-cleanup.test.ts"
+    ],
+    "tests": [
+      "tests/worker/sync/sync-tombstone-vector-cleanup.test.ts",
+      "tests/worker/sync/sync-apply.test.ts",
+      "tests/worker/sync/sync-revision-reconcile.test.ts",
+      "tests/worker/http/routes/data-routes-chroma-cleanup.test.ts",
+      "tests/worker/http/routes/data-routes-delete-sync.test.ts"
+    ]
+  },
+  {
+    "slug": "server-queue-metric-deadline",
+    "branch": "afloat/20261110-server-queue-metric-deadline-verify-f172f19",
+    "source_sha": "f172f19f73dbbb278170e9c5de53a66fd07ca576",
+    "original_base": "0e02f46722da9c30f9da6ebf58a71bd21f7e872c",
+    "regression_tests": [
+      "tests/server/runtime/server-queue-metric-deadline.test.ts"
+    ],
+    "tests": [
+      "tests/server/runtime/server-queue-metric-deadline.test.ts",
+      "tests/server/runtime/active-queue-manager.test.ts",
+      "tests/server/jobs/server-job-queue.test.ts"
+    ]
+  },
+  {
+    "slug": "knowledge-query-cancellation",
+    "branch": "afloat/20261110-knowledge-query-cancellation",
+    "source_sha": "37a504f3a81a58f660f5e6c939420719f149c9fc",
+    "original_base": "0e02f46722da9c30f9da6ebf58a71bd21f7e872c",
+    "regression_tests": [
+      "tests/worker/knowledge/knowledge-query-cancellation.test.ts"
+    ],
+    "tests": [
+      "tests/worker/knowledge/knowledge-query-cancellation.test.ts",
+      "tests/worker/knowledge/knowledge-sdk-outcomes.test.ts",
+      "tests/worker/knowledge/knowledge-agent-resume-error.test.ts",
+      "tests/worker/http/routes/corpus-routes-sse.test.ts"
+    ]
+  }
+]

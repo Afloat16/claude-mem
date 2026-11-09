@@ -1,0 +1,41 @@
+name: Verify remaining contributions
+
+on:
+  push:
+    branches: ['afloat-verify/20261110-batch-1']
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Preserve the batch verifier outside checkouts
+        run: |
+          cp .github/scripts/afloat-batch-verify.py "$RUNNER_TEMP/batch-verify.py"
+          cp .github/scripts/afloat-batch-input.json "$RUNNER_TEMP/batch-input.json"
+      - name: Verify each original and corrected implementation
+        env:
+          GH_TOKEN: '${{ github.token }}'
+        run: python3 "$RUNNER_TEMP/batch-verify.py" "$RUNNER_TEMP/batch-input.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: batch-verification-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/*-baseline.log
+            ${{ runner.temp }}/*-changed.log
+            ${{ runner.temp }}/batch-baseline-artifacts.json
+            ${{ runner.temp }}/batch-verification-results.json
