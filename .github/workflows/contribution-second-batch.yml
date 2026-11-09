@@ -1,0 +1,180 @@
+name: Contribution verification second batch
+on:
+  push:
+    branches:
+      - validation/second-batch-20261109
+permissions:
+  contents: read
+jobs:
+  formats:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Formats ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - name: native-import-slots
+            sha: 14b61bb39ae47a4ab1a2b8488fee673a0a02a395
+            tests: ''
+            phase: fix
+          - name: native-elf-core-path
+            sha: 31727d965106c62e552d901be3f1e4710fc0030a
+            tests: ''
+            phase: fix
+          - name: native-elf-partial-symbols
+            sha: 5d547081a9951fc2b2064d8f8f38c36c086fe9f0
+            tests: ''
+            phase: fix
+          - name: native-elf-version-bounds
+            sha: 99df6a3f90b8feb52cb0949ac935ced6881379ed
+            tests: ''
+            phase: fix
+          - name: native-pe-import-bounds
+            sha: f9e17888dac7352dd4882c57bc34f779afe4a87e
+            tests: ''
+            phase: fix
+          - name: native-pe-address-width
+            sha: 3cf2cfca1d5d310e8169d2199acd9322a1d7505a
+            tests: ''
+            phase: fix
+          - name: baseline-pe-import-bounds
+            sha: 60d5f452a78c77e0c670b2d457fbb334d06876a3
+            tests: '--test pe_import_directory_bounds'
+            phase: baseline
+          - name: baseline-pe-address-width
+            sha: 5fdc2195f01d0802c4ced47e408c2130f6c92c11
+            tests: '--test pe_virtual_address_overflow'
+            phase: baseline
+          - name: archive-carchive-bounds
+            sha: 6f55500ea46ba918f351283870b7ee160b473ecc
+            tests: ''
+            phase: fix
+          - name: archive-asar-node-shapes
+            sha: 91660410d6c23a0fad167e61f1cf39cf7b4711c2
+            tests: ''
+            phase: fix
+          - name: archive-gzip-header
+            sha: a35b9cec98d4920302b2927de9bc37574fde25f8
+            tests: ''
+            phase: fix
+          - name: archive-gzip-members
+            sha: 695cc0ae45c486ccfe00a04e49162aff4d75cef4
+            tests: ''
+            phase: fix
+          - name: archive-zip-bzip2-xz
+            sha: da0ff86ed236f16428a4d2eca5177c80d7de7ee6
+            tests: ''
+            phase: fix
+          - name: archive-zip-lzma
+            sha: 28780ef6ad319ef96e8e7657ac34d1e71a730d10
+            tests: ''
+            phase: fix
+          - name: archive-lzma-memory
+            sha: 5da8880d3b56785498cf0c09ae46f300f070322d
+            tests: ''
+            phase: fix
+          - name: other-il2cpp-formatted
+            sha: d81b7d5705461ef4425c33a03de4252f5f096f13
+            tests: ''
+            phase: fix
+          - name: other-unreal-formatted
+            sha: 75b507c0b96fe22c8f8a1e517c31ef6cee207a01
+            tests: ''
+            phase: fix
+          - name: other-node-sea
+            sha: b8f989a9ab8627c95c01f8337a8d8fd3d9a95bd0
+            tests: ''
+            phase: fix
+          - name: other-arsc-parent-bounds
+            sha: ebbe4be0a47bd18f7b114d48e58c6d97b309c4b4
+            tests: ''
+            phase: fix
+          - name: other-wasm-names-budget
+            sha: 6425e7b64a8e95f1b5b14632835442bd024b8855
+            tests: ''
+            phase: fix
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: ${{ matrix.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: contribution-formats
+          cache-on-failure: 'true'
+      - name: Formatting
+        if: matrix.phase == 'fix'
+        run: cargo fmt --all -- --check
+      - name: Formats tests
+        if: always()
+        run: cargo test --locked -p craft-anything-formats ${{ matrix.tests }}
+      - name: Formats lint
+        if: always() && matrix.phase == 'fix'
+        run: cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+  openmaus:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: OpenMausBot ${{ matrix.number }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - number: 0
+            sha: 6c7bcb02ea766429091f94b8e1e11b7b3b8675af
+            tests: ''
+          - number: 1
+            sha: ba3c2b7c65b1f6d1a10d4a56aa173a4a94e685f7
+            tests: 'server/drivers/retry-delay.test.ts server/drivers/retry.test.ts'
+          - number: 2
+            sha: 1872e9fa09e81ec84946b7507df585a27a89a9fa
+            tests: 'server/routine-run-window.test.ts'
+          - number: 3
+            sha: a05ee1605344ddd79ef35fd52637864040d2ec86
+            tests: 'server/connector-arguments.test.ts'
+          - number: 4
+            sha: 930ff7d757a0337765c702ce5282d26b0d9aac6b
+            tests: 'server/mcp-http-framing.test.ts server/mcp-http.test.ts'
+          - number: 5
+            sha: 65f33fccb3ef0ec8ac6cc89c2708edd334f6d1c4
+            tests: 'server/totp.test.ts'
+          - number: 6
+            sha: 958f66787e23abf8d37640d96654ed274ef6bba1
+            tests: 'server/drivers/codex-mcp-names.test.ts server/toml-lite.test.ts'
+          - number: 7
+            sha: 5c300847c6260e8d42aee4238f9a89dbe12195c3
+            tests: 'server/thread-events.test.ts'
+          - number: 8
+            sha: 216ba4ea3b95eed7fcf344f6987f9c88f47a6d59
+            tests: 'server/tts/speech-text.test.ts'
+          - number: 9
+            sha: ffd027c9660d31fd35c7df95b01363e02ddd1cd0
+            tests: 'server/extractor/contract-dates.test.ts server/extractor/extractor.test.ts'
+          - number: 10
+            sha: 3f7e2ce345cf890bb472b0f93f44e532168b9aff
+            tests: 'server/connector-tools-list.test.ts server/connected-reads.test.ts'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/OpenMausBot
+          ref: ${{ matrix.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+      - name: Install declared dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Full project typecheck
+        run: pnpm typecheck
+      - name: Targeted regressions
+        if: always() && matrix.number != 0
+        run: pnpm exec vitest run --environment node --maxWorkers=1 --no-file-parallelism ${{ matrix.tests }}
