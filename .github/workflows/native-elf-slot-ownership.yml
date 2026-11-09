@@ -1,0 +1,67 @@
+name: Native ELF slot ownership verification
+on:
+  push:
+    branches:
+      - validation/native-elf-slot-ownership-20261109
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Versioned ELF slot ownership regression and correction
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: f607786f68c16bdc85968ea35ec4ac76ff3d320f
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: contribution-formats
+          cache-on-failure: 'true'
+      - name: Reproduce ambiguous version ownership before the final guard
+        run: |
+          set +e
+          cargo test --locked -p craft-anything-formats --test import_library_slots different_versioned_libraries_do_not_share_an_unlabelled_slot -- --exact 2>&1 | tee "$RUNNER_TEMP/elf-owner-before.log"
+          baseline_exit=${PIPESTATUS[0]}
+          set -e
+          test "$baseline_exit" -eq 101
+          python3 - "$RUNNER_TEMP/elf-owner-before.log" <<'PY'
+          import pathlib, sys
+          log = pathlib.Path(sys.argv[1]).read_text()
+          assert "test different_versioned_libraries_do_not_share_an_unlabelled_slot ... FAILED" in log, log[-5000:]
+          assert "test result: FAILED. 0 passed; 1 failed;" in log, log[-5000:]
+          print("Verified expected ownership assertion failure before the correction.")
+          PY
+      - name: Check out exact correction
+        if: always()
+        run: |
+          git fetch --no-tags https://github.com/Afloat16/craft-anything.git 1179870c55203d946bb8a7412b9b8f1088352fe3
+          git checkout --detach --force 1179870c55203d946bb8a7412b9b8f1088352fe3
+          git rev-parse HEAD
+      - name: Formatting
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: Complete formats tests
+        if: always()
+        run: cargo test --locked -p craft-anything-formats
+      - name: Formats clippy
+        if: always()
+        run: cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Layer lock secret and WebAssembly gates
+        if: always()
+        run: |
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+          git diff --exit-code -- Cargo.lock
