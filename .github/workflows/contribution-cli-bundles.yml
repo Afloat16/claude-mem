@@ -1,0 +1,61 @@
+name: Verify contribution CLI bundles
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/contribution-cli-bundles.yml'
+permissions:
+  contents: read
+jobs:
+  bundle:
+    if: github.repository == 'Afloat16/claude-mem'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - name: baseline
+            sha: 989a98a2fb7978354497df46c4e17101f54ba9a3
+          - name: improvement-1
+            sha: 3f8b4dbb54656310b0e9fee7e70646dc84d36bdc
+          - name: improvement-2
+            sha: 27259ae9c4e70761dcc42207c1d05b5796631095
+          - name: improvement-3
+            sha: 8d36505194b851e3fa0a3bd77f2c800a67983dd0
+          - name: improvement-4
+            sha: 0f5de65c1afd45d438712cdae33f38a8e68f62c8
+          - name: improvement-6
+            sha: ad9b5d55675923bd48161f79e3b0fa7cc953c7f1
+          - name: improvement-8
+            sha: 31eafb33b34a1a6a2a835af27eb0aca6978263a7
+          - name: improvement-9
+            sha: c1c54a8c27fa54bb26b3fdfbd3b975df4c663603
+          - name: improvement-10
+            sha: 1bae05924b5dfa66ccec99bdc51d8348bb4f44b0
+    name: CLI bundle ${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build the committed CLI entry point
+        run: npx --yes --package=esbuild@0.28.0 esbuild src/services/work-view/request-groups-cli.mjs --bundle --platform=node --target=node18 --format=esm --external:bun:sqlite --outfile=/tmp/contribution-request-groups.mjs
+      - name: Emit generated public source for verification
+        env:
+          CONTRIBUTION_NAME: ${{ matrix.name }}
+          CONTRIBUTION_SHA: ${{ matrix.sha }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import { createHash } from 'node:crypto';
+          const output = readFileSync('/tmp/contribution-request-groups.mjs');
+          const committed = readFileSync('plugin/skills/request-progress/scripts/request-groups.mjs');
+          const encoded = output.toString('base64');
+          console.log('CONTRIBUTION_BUNDLE_META ' + JSON.stringify({ name: process.env.CONTRIBUTION_NAME, source: process.env.CONTRIBUTION_SHA, bytes: output.length, sha256: createHash('sha256').update(output).digest('hex'), matchesCommitted: output.equals(committed) }));
+          for (let offset = 0; offset < encoded.length; offset += 16000) console.log('CONTRIBUTION_BUNDLE_CHUNK ' + (offset / 16000) + ' ' + encoded.slice(offset, offset + 16000));
+          console.log('CONTRIBUTION_BUNDLE_END');
+          NODE
