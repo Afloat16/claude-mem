@@ -42,7 +42,7 @@ jobs:
           test("new incomplete-group input stays rejected", () => {
             assert.equal(parseTotpKey("JBSWY3DPEHPK3PXPA"), null);
           });
-                    NODE
+          NODE
       - name: Speech chunk regressions
         if: matrix.pr == 5090
         run: |
@@ -62,4 +62,4 @@ jobs:
             assert.ok(chunks.every(chunk => chunk.length > 0 && chunk.length <= 320 && /^(?:カ\u3099)+$/u.test(chunk)));
             assert.equal(chunks.join(""), speakable(text));
           });
-                    NODE
+          NODE
