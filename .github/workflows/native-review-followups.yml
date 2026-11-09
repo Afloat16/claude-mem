@@ -1,0 +1,112 @@
+name: Native parser review follow-up verification
+on:
+  push:
+    branches:
+      - validation/native-review-followups-20261109
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Native import-slot and bound-warning before-after verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 3ad1f5b0d33a336b744b6f653f85eb1635622422
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: contribution-formats
+          cache-on-failure: 'true'
+      - name: Native 1 regression fails before its correction
+        if: always()
+        run: |
+          git fetch --no-tags https://github.com/Afloat16/craft-anything.git 3ad1f5b0d33a336b744b6f653f85eb1635622422
+          git checkout --detach --force 3ad1f5b0d33a336b744b6f653f85eb1635622422
+          git rev-parse HEAD
+          set +e
+          cargo test --locked -p craft-anything-formats --test import_library_slots versioned_elf_imports_keep_unique_slots_without_library_metadata -- --exact 2>&1 | tee "$RUNNER_TEMP/native-1-before.log"
+          baseline_exit=${PIPESTATUS[0]}
+          set -e
+          test "$baseline_exit" -eq 101
+          python3 - "$RUNNER_TEMP/native-1-before.log" <<'PY'
+          import pathlib, sys
+          log = pathlib.Path(sys.argv[1]).read_text()
+          assert "test versioned_elf_imports_keep_unique_slots_without_library_metadata ... FAILED" in log, log[-5000:]
+          assert "test result: FAILED. 0 passed; 1 failed;" in log, log[-5000:]
+          print("Verified expected assertion failure for native 1; this baseline is intentionally red.")
+          PY
+      - name: Check out native 1 corrected source
+        if: always()
+        run: |
+          git fetch --no-tags https://github.com/Afloat16/craft-anything.git d4048c6ef9b07b775597cf193efa70269cad7ff4
+          git checkout --detach --force d4048c6ef9b07b775597cf193efa70269cad7ff4
+          git rev-parse HEAD
+      - name: Native 1 formatting
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: Native 1 complete formats tests
+        if: always()
+        run: cargo test --locked -p craft-anything-formats
+      - name: Native 1 formats clippy
+        if: always()
+        run: cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Native 1 layer lock secret and WebAssembly gates
+        if: always()
+        run: |
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Native 5 regression fails before its correction
+        if: always()
+        run: |
+          git fetch --no-tags https://github.com/Afloat16/craft-anything.git 943016fe3f242185981d1621e816f91ec6f00408
+          git checkout --detach --force 943016fe3f242185981d1621e816f91ec6f00408
+          git rev-parse HEAD
+          set +e
+          cargo test --locked -p craft-anything-formats --test pe_import_directory_bounds repeated_invalid_bound_forwarder_names_produce_one_module_warning -- --exact 2>&1 | tee "$RUNNER_TEMP/native-5-before.log"
+          baseline_exit=${PIPESTATUS[0]}
+          set -e
+          test "$baseline_exit" -eq 101
+          python3 - "$RUNNER_TEMP/native-5-before.log" <<'PY'
+          import pathlib, sys
+          log = pathlib.Path(sys.argv[1]).read_text()
+          assert "test repeated_invalid_bound_forwarder_names_produce_one_module_warning ... FAILED" in log, log[-5000:]
+          assert "test result: FAILED. 0 passed; 1 failed;" in log, log[-5000:]
+          print("Verified expected assertion failure for native 5; this baseline is intentionally red.")
+          PY
+      - name: Check out native 5 corrected source
+        if: always()
+        run: |
+          git fetch --no-tags https://github.com/Afloat16/craft-anything.git 8a6017bd43b2eef263a645eafbac98b038763c20
+          git checkout --detach --force 8a6017bd43b2eef263a645eafbac98b038763c20
+          git rev-parse HEAD
+      - name: Native 5 formatting
+        if: always()
+        run: cargo fmt --all -- --check
+      - name: Native 5 complete formats tests
+        if: always()
+        run: cargo test --locked -p craft-anything-formats
+      - name: Native 5 formats clippy
+        if: always()
+        run: cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Native 5 layer lock secret and WebAssembly gates
+        if: always()
+        run: |
+          cargo xtask layers
+          cargo xtask locks
+          cargo xtask secrets
+          cargo xtask wasm
+          git diff --exit-code -- Cargo.lock
