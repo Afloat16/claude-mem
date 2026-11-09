@@ -1,0 +1,185 @@
+name: Independent contribution verification
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/independent-contributions.yml'
+permissions:
+  contents: read
+jobs:
+  dashboard:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Dashboard ${{ matrix.number }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - number: 1
+            sha: 2d403028f8920a0741e9ac1d94ec7418397dd8b1
+          - number: 2
+            sha: e0a74e9ac54bd077a387fd5f6c570cfdd911e0e9
+          - number: 3
+            sha: d589a746d3a13dcbde7ccdd674142420aae2ddfb
+          - number: 4
+            sha: 0115545b95a42e17fb7bac58a7496a87bc824ee3
+          - number: 5
+            sha: 43755a8b66ddec401173d165d37961ae5be4caff
+          - number: 6
+            sha: f461d0272cc03143ca9e7d6391560655c5a5ec65
+          - number: 7
+            sha: 85b68ac577d7021ec8fc9dc66ed9d0737f79628f
+          - number: 8
+            sha: 77619057055cf737668aa30fff5f9cdd234a986e
+          - number: 9
+            sha: 2ce4c7a79059a2a4f9818e2bf90b1da510d8ee8a
+          - number: 10
+            sha: dd636c104ad23269f7ec4b1121c84e865e0edc5e
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/agent-browser
+          ref: ${{ matrix.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - uses: pnpm/action-setup@v4
+      - name: Install dashboard dependencies
+        run: pnpm install --frozen-lockfile --filter dashboard
+      - name: Test and build dashboard
+        run: pnpm --filter dashboard build
+  billion:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Billion context ${{ matrix.number }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - number: 1
+            sha: d90c2b6320e58f4b9b7c42d4b22a77d503aa511f
+            tests: 'tests/simhash-vote-range.test.ts tests/prefix-affinity-simhash.test.ts'
+          - number: 2
+            sha: caf14bb702346eae823ede9b46d501952b3cca4d
+            tests: 'tests/affinity-snapshot-position.test.ts tests/prefix-affinity-simhash.test.ts'
+          - number: 3
+            sha: 01e42ad79402ea62220e7ac60c2d54075da8c4ef
+            tests: 'tests/media-walk-depth.test.ts'
+          - number: 4
+            sha: 76189b11ef297ab1244c268f20813ebb3d839fb7
+            tests: 'tests/health-body-timeout.test.ts tests/issue3654-health-probe-three-state.test.ts'
+          - number: 5
+            sha: 1b43b991f3673d1acb552278088701e0e831e69c
+            tests: 'tests/dump-gc-accounting.test.ts tests/state-gc.test.ts'
+          - number: 6
+            sha: 312e4218329869d6d27b4f330926038ae61c485f
+            tests: 'tests/idle-stream-disconnect.test.ts tests/backpressure-drain.test.ts'
+          - number: 7
+            sha: 105b84dd95c73eccb3eab83a2c199e0c1413b1f4
+            tests: 'tests/sse-dump-backpressure.test.ts'
+          - number: 8
+            sha: 435d2d3e5b6670b58dca336793ac97361a6e2e02
+            tests: 'tests/attach-invalid-timestamps.test.ts tests/issue5408-frozen-recovery.test.ts'
+          - number: 9
+            sha: ffb5a3dcf0ecbf07a6d28e3db54a64bd05193fa8
+            tests: 'tests/watermark-cache-eviction.test.ts tests/pf-channel.test.ts tests/msgid-rule-parity.test.ts'
+          - number: 10
+            sha: 6b0cb61a6ce69241faff00164e9195c85bb4e9fc
+            tests: 'tests/storage-null-identity.test.ts tests/issue4677-v8-migration-streaming.test.ts'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/billion-context
+          ref: ${{ matrix.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-fund --no-audit
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Targeted regressions and related suites
+        run: node --import ./tests/preload-storage-baseline.mjs --import ./tests/preload-test-env.mjs --import tsx --test ${{ matrix.tests }}
+      - name: Production build and distribution checks
+        run: npm run build
+  craft:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Craft formats ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - name: baseline-import-library-slots
+            sha: fbc75b7a38ded5f97b231ae5946d383df8f5410c
+            tests: '--test import_library_slots'
+            phase: regression
+          - name: baseline-elf-core-path
+            sha: 1768ca3088adec5ebecccf32672e05ec86ef4ec1
+            tests: '--test elf_core_path_cursor'
+            phase: regression
+          - name: baseline-elf-partial-symbols
+            sha: 1a577c14a71305d01acd0ace6dbbe994e5ece3f2
+            tests: '--test elf_partial_section_symbols'
+            phase: regression
+          - name: baseline-elf-version-bounds
+            sha: 7b0fef7fd05d27c8d0ad5055b298fa0f6f990e1e
+            tests: '--test elf_version_section_bounds'
+            phase: regression
+          - name: java-wide-pool
+            sha: e0dbc3a5b60b140f26f3622f34c11035e3c1cb7d
+            tests: ''
+            phase: fix
+          - name: godot-footer
+            sha: 9744a0569a7c51d8938ce645e52f9a66965fb1e2
+            tests: ''
+            phase: fix
+          - name: il2cpp-text-budget
+            sha: a5297a81d7a395be06b0746cccc3ccda00994daf
+            tests: ''
+            phase: fix
+          - name: unity-metadata
+            sha: de9d7444f5098a3e6c27b32f3b5249d4bb2743fc
+            tests: ''
+            phase: fix
+          - name: unity-integer-textures
+            sha: 540b4947aa1bc7a7195d67eabcbff5582b8a3127
+            tests: ''
+            phase: fix
+          - name: unreal-float-textures
+            sha: 5b17be5ae2a00e9e93959793ed254335a8177d76
+            tests: ''
+            phase: fix
+          - name: dex-class-data
+            sha: 149f060b9959e8906327e799088728820659513c
+            tests: ''
+            phase: fix
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: ${{ matrix.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: contribution-formats
+      - name: Formats regressions
+        run: cargo test --locked -p craft-anything-formats ${{ matrix.tests }}
+      - name: Formatting
+        if: always() && matrix.phase == 'fix'
+        run: cargo fmt --all -- --check
+      - name: Formats lint
+        if: always() && matrix.phase == 'fix'
+        run: cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
