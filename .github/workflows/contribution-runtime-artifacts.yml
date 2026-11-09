@@ -56,16 +56,17 @@ jobs:
           CONTRIBUTION_SHA: ${{ matrix.sha }}
         run: |
           node --input-type=module <<'NODE'
-          import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
+          import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync } from 'node:fs';
           import { dirname, join } from 'node:path';
           import { execFileSync } from 'node:child_process';
           import { createHash } from 'node:crypto';
           const sha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
           if (sha !== process.env.CONTRIBUTION_SHA) throw new Error('Unexpected source revision');
           const outputDir = join(process.env.RUNNER_TEMP, 'contribution-built-target');
-          const paths = execFileSync('git', ['ls-files', '-z', 'plugin'], { encoding: 'utf8' }).split('\0').filter(path => /\.(?:cjs|js|mjs|map|html)$/.test(path) && /^(?:plugin\/scripts\/|plugin\/sqlite\/|plugin\/ui\/|plugin\/skills\/request-progress\/scripts\/)/.test(path));
+          const paths = execFileSync('git', ['ls-files', '-z', 'plugin'], { encoding: 'utf8' }).split('\0').filter(path => /\.(?:cjs|js|mjs|map|html)$/.test(path) && /^(?:plugin\/scripts\/|plugin\/sqlite\/|plugin\/skills\/request-progress\/scripts\/)/.test(path));
           const entries = [];
           for (const path of paths) {
+            if (!existsSync(path)) continue;
             const data = readFileSync(path);
             const output = join(outputDir, path);
             mkdirSync(dirname(output), { recursive: true });
