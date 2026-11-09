@@ -1,0 +1,44 @@
+name: Tar installer final exact source gates
+on:
+  push:
+    branches:
+      - validation/tar-installer-final-20261109
+permissions:
+  contents: read
+jobs:
+  tar-installer-final:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Corrected tar installer exact source
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 3e588c5589ee56ab50004dd0e87cc47f4f2455da
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - name: Check formatting
+        run: |
+          test "$(git rev-parse HEAD)" = "3e588c5589ee56ab50004dd0e87cc47f4f2455da"
+          cargo fmt --all -- --check
+      - name: Test formats and engines
+        if: always()
+        run: cargo test --locked -p craft-anything-formats -p craft-anything-engines --no-fail-fast
+      - name: Lint formats and engines
+        if: always()
+        run: cargo clippy --locked -p craft-anything-formats -p craft-anything-engines --all-targets -- -D warnings
+      - name: L0 gates
+        if: always()
+        run: |
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
