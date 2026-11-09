@@ -1,0 +1,102 @@
+name: GNU record extent regression and ASAR integration
+on:
+  push:
+    branches:
+      - validation/gnu-record-extents-and-asar-20261109
+permissions:
+  contents: read
+jobs:
+  source-gates:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Reproduce GNU extent stops and verify exact source
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - name: Keep sequential compilation outside checkout
+        run: echo "CARGO_TARGET_DIR=$RUNNER_TEMP/gnu-record-extents-target" >> "$GITHUB_ENV"
+      - name: Check out ASAR third integration
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 7ff2027b989fdd3ed6b9ee4d927779b29b69e895
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - name: ASAR third formatting
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "7ff2027b989fdd3ed6b9ee4d927779b29b69e895"
+          cargo fmt --all -- --check
+      - name: ASAR third regression tests
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "7ff2027b989fdd3ed6b9ee4d927779b29b69e895"
+          cargo test --locked -p craft-anything-formats --no-fail-fast
+      - name: ASAR third clippy
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "7ff2027b989fdd3ed6b9ee4d927779b29b69e895"
+          cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: ASAR third L0 gates
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "7ff2027b989fdd3ed6b9ee4d927779b29b69e895"
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
+      - name: Check out unchanged GNU extent production with regressions
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: bec699d80a3f4d9ae977d20e6ceecc50af1e5dfe
+          persist-credentials: false
+      - name: Reproduce four extent failures with seven passing controls
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "bec699d80a3f4d9ae977d20e6ceecc50af1e5dfe"
+          set +e
+          cargo test --locked -p craft-anything-engines tar_metadata_ -- --nocapture 2>&1 | tee "$RUNNER_TEMP/gnu-record-extents-before.log"
+          result=${PIPESTATUS[0]}
+          set -e
+          test "$result" -ne 0
+          grep -F 'test result: FAILED. 7 passed; 4 failed;' "$RUNNER_TEMP/gnu-record-extents-before.log"
+          grep -F 'result: Ok(1)' "$RUNNER_TEMP/gnu-record-extents-before.log"
+      - name: Check out GNU extent correction candidate
+        if: always()
+        uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 25c45ef05d81bfee699dd3c7d351aefc27d83224
+          persist-credentials: false
+      - name: GNU extent correction formatting
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "25c45ef05d81bfee699dd3c7d351aefc27d83224"
+          cargo fmt --all -- --check
+      - name: GNU extent correction regression tests
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "25c45ef05d81bfee699dd3c7d351aefc27d83224"
+          cargo test --locked -p craft-anything-formats -p craft-anything-engines --no-fail-fast
+      - name: GNU extent correction clippy
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "25c45ef05d81bfee699dd3c7d351aefc27d83224"
+          cargo clippy --locked -p craft-anything-formats -p craft-anything-engines --all-targets -- -D warnings
+      - name: GNU extent correction L0 gates
+        if: always()
+        run: |
+          test "$(git rev-parse HEAD)" = "25c45ef05d81bfee699dd3c7d351aefc27d83224"
+          cargo run --locked -p xtask -- layers
+          cargo run --locked -p xtask -- locks
+          cargo run --locked -p xtask -- secrets
+          cargo run --locked -p xtask -- wasm
+          git diff --exit-code -- Cargo.lock
