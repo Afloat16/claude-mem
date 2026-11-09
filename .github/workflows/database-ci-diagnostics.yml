@@ -1,0 +1,217 @@
+name: Database CI diagnostics
+on:
+  push:
+    branches: ['validation/database-ci-diagnostics-20261109']
+permissions:
+  contents: read
+jobs:
+  sync-api:
+    name: sync-api (postgres · protocol v2 · matrix e2e) — ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sync_api_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sync_api_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/sync_api_test
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - label: 'base'
+            source: '989a98a2fb7978354497df46c4e17101f54ba9a3'
+          - label: 'pr-5581'
+            source: '52477ad17ac0ce7f2c4a4d88707999fd05502e56'
+          - label: 'pr-5586'
+            source: '75902142fb57061283c7528fbccd48cebb5ad448'
+          - label: 'pr-5589'
+            source: '7a8af27c46224b6fd2dbe9a307e0f8d3562c8526'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/claude-mem
+          ref: ${{ matrix.source }}
+          persist-credentials: false
+      - name: Verify exact source
+        env:
+          EXPECTED_SOURCE_SHA: ${{ matrix.source }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install repository dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install sync-api dependencies
+        working-directory: services/sync-api
+        run: bun install --frozen-lockfile
+
+      # Every Postgres-backed server and storage suite, generation attempt
+      # ownership included; without a test database they skip.
+      - name: Server and storage tests (Postgres)
+        env:
+          CLAUDE_MEM_DATA_DIR: ${{ runner.temp }}/claude-mem-generation-data
+        run: CLAUDE_MEM_TEST_POSTGRES_URL="$DATABASE_URL" bun test tests/server tests/storage tests/cli/server-jobs.test.ts
+
+      - name: sync-api unit and protocol tests
+        working-directory: services/sync-api
+        run: bun test test
+
+      - name: viewer-host gate tests
+        working-directory: services/viewer-host
+        run: bun install --frozen-lockfile && bun test test
+
+      # The matrix's browser pages compile the real My Work source, whose
+      # dependencies live in that app's own package.
+      - name: Install My Work dependencies
+        working-directory: src/ui/my-work
+        run: npm ci --no-audit --no-fund
+
+      # The matrix allows a browser 10 s to start. This is the runner's first
+      # Chrome launch, so run one first and record how long it takes.
+      - name: Warm Chrome
+        run: time google-chrome --headless --no-sandbox --disable-gpu --dump-dom about:blank
+
+      - name: protocol-v2 matrix e2e against local sync-api
+        run: bun scripts/sync-matrix-e2e.ts
+
+  # bm25 keyword ranking needs pg_textsearch (and search by meaning needs
+  # pgvector), which the postgres:16 service above lacks; there these tests
+  # skip. This job builds docker/postgres, the image docker-compose.yml runs,
+  # so the search tests run against the same Postgres self-hosters get.
+
+  server-search-pgvector:
+    name: server search (pgvector · pg_textsearch) — ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLAUDE_MEM_TEST_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/server_search_test
+      # Fail, rather than skip, a search-by-meaning test that finds no pgvector.
+      CLAUDE_MEM_TEST_PGVECTOR: '1'
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - label: 'base'
+            source: '989a98a2fb7978354497df46c4e17101f54ba9a3'
+          - label: 'pr-5586'
+            source: '75902142fb57061283c7528fbccd48cebb5ad448'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/claude-mem
+          ref: ${{ matrix.source }}
+          persist-credentials: false
+      - name: Verify exact source
+        env:
+          EXPECTED_SOURCE_SHA: ${{ matrix.source }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+
+      - name: Build and start Postgres from docker/postgres
+        run: |
+          docker build -t claude-mem-postgres:17 docker/postgres
+          docker run -d --name search-postgres -p 5432:5432 \
+            -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=server_search_test \
+            claude-mem-postgres:17
+          # Over TCP, so the image's socket-only init server does not count as ready.
+          for attempt in $(seq 60); do
+            docker exec search-postgres pg_isready -h 127.0.0.1 -U postgres -d server_search_test && exit 0
+            sleep 1
+          done
+          docker logs search-postgres
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install repository dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: bm25 and hybrid search, vector writes and backfill
+        env:
+          CLAUDE_MEM_DATA_DIR: ${{ runner.temp }}/claude-mem-search-data
+        run: >-
+          bun test
+          tests/storage/postgres/postgres-storage.test.ts
+          tests/storage/postgres/observation-embeddings.test.ts
+          tests/server/embedding-parts-contract.test.ts
+          tests/server/runtime/memories-vector-write.test.ts
+          tests/server/generation/process-generated-response-vectors.test.ts
+          tests/services/vector/local-embedder-encode.test.ts
+          tests/server/semantic-context-route.test.ts
+
+  server-runtime-e2e-docker:
+    name: server-runtime e2e (docker · pg + valkey) — ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Docker is available on ubuntu-latest GitHub runners. This job runs the
+    # full server-runtime e2e (#2550): real Postgres + Valkey, queue durability,
+    # restart recovery, and revoked-key denial. It does not gate PRs from the
+    # `build` job; a failure here surfaces a server-runtime regression before a
+    # user can file one (plan-07 test matrix).
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - label: 'base'
+            source: '989a98a2fb7978354497df46c4e17101f54ba9a3'
+          - label: 'pr-5579'
+            source: 'd774c438b947277592633c16efc0f9ba3329a0df'
+          - label: 'pr-5588'
+            source: 'd9f9eb9102b64e4e13e9b2a5c8fd0c54b1b89ee4'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/claude-mem
+          ref: ${{ matrix.source }}
+          persist-credentials: false
+      - name: Verify exact source
+        env:
+          EXPECTED_SOURCE_SHA: ${{ matrix.source }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # See note in the build job: no committed lockfile, so npm install.
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Verify Docker is available
+        run: docker compose version
+
+      - name: Server-runtime Docker e2e
+        run: npm run e2e:server:docker
