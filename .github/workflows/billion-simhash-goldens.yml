@@ -1,0 +1,99 @@
+name: Billion SimHash storage golden verification
+on:
+  push:
+    branches:
+      - validation/billion-simhash-goldens-20261109
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Verify SimHash metadata delta and storage goldens
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/billion-context
+          ref: 4be21b08ed3da8b69d1800a10a9c0b9c5a707f71
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies and build local packages
+        run: |
+          npm install --ignore-scripts --no-fund --no-audit
+          npm run typecheck
+      - name: Verify existing goldens on unchanged base
+        run: node --import ./tests/preload-storage-baseline.mjs --import ./tests/preload-test-env.mjs --import tsx --test tests/golden-storage-render.test.ts tests/storage-engine-proofs.test.ts
+      - name: Record baseline persisted state using the official generator
+        run: |
+          mkdir -p "$RUNNER_TEMP/goldens-before" "$RUNNER_TEMP/simhash-before"
+          cp tests/golden/storage-render/*.json "$RUNNER_TEMP/goldens-before/"
+          export GOLDEN_INSPECT_DIR="$RUNNER_TEMP/simhash-before"
+          node <<'NODE'
+          const fs = require("node:fs");
+          const p = "scripts/update-storage-render-goldens.ts";
+          let s = fs.readFileSync(p, "utf8");
+          if (!s.includes("await driveWire(wire)")) throw new Error("generator call changed");
+          s = s.replace("await driveWire(wire)", 'await driveWire(wire, undefined, { dumpStateTo: path.join(process.env.GOLDEN_INSPECT_DIR!, wire + ".json") })');
+          fs.writeFileSync(p, s);
+          NODE
+          node --import ./tests/preload-storage-baseline.mjs --import ./tests/preload-test-env.mjs --import tsx scripts/update-storage-render-goldens.ts
+          git diff --exit-code -- tests/golden/storage-render
+          git restore -- scripts/update-storage-render-goldens.ts
+      - name: Check out exact overflow correction
+        run: |
+          git fetch --no-tags https://github.com/Afloat16/billion-context.git d90c2b6320e58f4b9b7c42d4b22a77d503aa511f
+          git checkout --detach d90c2b6320e58f4b9b7c42d4b22a77d503aa511f
+          npm run typecheck
+      - name: Regenerate corrected fingerprints and capture full persisted state
+        run: |
+          mkdir -p "$RUNNER_TEMP/simhash-after"
+          export GOLDEN_INSPECT_DIR="$RUNNER_TEMP/simhash-after"
+          node <<'NODE'
+          const fs = require("node:fs");
+          const p = "scripts/update-storage-render-goldens.ts";
+          let s = fs.readFileSync(p, "utf8");
+          if (!s.includes("await driveWire(wire)")) throw new Error("generator call changed");
+          s = s.replace("await driveWire(wire)", 'await driveWire(wire, undefined, { dumpStateTo: path.join(process.env.GOLDEN_INSPECT_DIR!, wire + ".json") })');
+          fs.writeFileSync(p, s);
+          NODE
+          node --import ./tests/preload-storage-baseline.mjs --import ./tests/preload-test-env.mjs --import tsx scripts/update-storage-render-goldens.ts
+          git restore -- scripts/update-storage-render-goldens.ts
+      - name: Prove only persisted SimHash values and metadata digests changed
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const assert = require("node:assert/strict");
+          const path = require("node:path");
+          function diff(a, b, prefix = "") {
+            if (Object.is(a, b)) return [];
+            if (!a || !b || typeof a !== "object" || typeof b !== "object") return [{ path: prefix, before: a, after: b }];
+            const keys = [...new Set([...Object.keys(a), ...Object.keys(b)])];
+            return keys.flatMap(key => diff(a[key], b[key], prefix ? prefix + "." + key : key));
+          }
+          let total = 0;
+          for (const wire of ["chat", "anthropic", "responses", "google"]) {
+            const beforeState = JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP, "simhash-before", wire + ".json"), "utf8"));
+            const afterState = JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP, "simhash-after", wire + ".json"), "utf8"));
+            const stateDiff = diff(beforeState, afterState);
+            console.log("PERSISTED_STATE_DIFF " + JSON.stringify({ wire, changes: stateDiff }));
+            assert.ok(stateDiff.length > 0, "expected corrected SimHash metadata for " + wire);
+            assert.ok(stateDiff.every(x => /^metadata\..*sketches\.\d+$/.test(x.path)), "only persisted affinity sketch values may change");
+            total += stateDiff.length;
+            const file = "tests/golden/storage-render/" + wire + ".json";
+            const content = fs.readFileSync(file, "utf8");
+            const before = JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP, "goldens-before", wire + ".json"), "utf8"));
+            const after = JSON.parse(content);
+            const goldenDiff = diff(before, after);
+            assert.deepEqual(goldenDiff.map(x => x.path).sort(), ["sectionDigests.metadata", "stateDigest", "stateDigestAligned"]);
+            console.log("GOLDEN_DIFF " + JSON.stringify({ wire, changes: goldenDiff }));
+            console.log("GOLDEN_FILE " + JSON.stringify({ path: file, content }));
+          }
+          console.log("SIMHASH_GOLDEN_PROOF " + JSON.stringify({ correctedSketches: total, changedGoldenFiles: 4, changedDigestFieldsPerWire: 3, wireAndOtherStateUnchanged: true }));
+          NODE
+      - name: Verify corrected goldens with storage restart proofs
+        run: node --import ./tests/preload-storage-baseline.mjs --import ./tests/preload-test-env.mjs --import tsx --test tests/golden-storage-render.test.ts tests/storage-engine-proofs.test.ts tests/simhash-vote-range.test.ts tests/prefix-affinity-simhash.test.ts
+      - name: Production bundle
+        run: npm run build
