@@ -1,0 +1,65 @@
+name: Node SEA final verification
+on:
+  push:
+    branches:
+      - validation/node-sea-final-20261109
+permissions:
+  contents: read
+jobs:
+  node-sea:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: Node SEA before and after
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CARGO_TERM_COLOR: never
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: 755e24ed5cd7947ae95b73b787e66972d2daee87
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: contribution-formats
+          cache-on-failure: 'true'
+      - name: Confirm the retained argument regression on the original implementation
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "755e24ed5cd7947ae95b73b787e66972d2daee87"
+          set +e
+          cargo test --locked -p craft-anything-formats --test node_sea_metadata_budget argument_retention_is_bounded_even_for_empty_strings -- --exact 2>&1 | tee /tmp/node-before.log
+          before_status=${PIPESTATUS[0]}
+          set -e
+          test "$before_status" -ne 0
+          rg -F 'test argument_retention_is_bounded_even_for_empty_strings ... FAILED' /tmp/node-before.log
+          rg 'left: 200001' /tmp/node-before.log
+          rg 'right: 200000' /tmp/node-before.log
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/craft-anything
+          ref: ce34c2446499f8740c9c0ad7855af845f8e8355c
+          persist-credentials: false
+          clean: false
+      - name: Verify the exact fixed source
+        run: test "$(git rev-parse HEAD)" = "ce34c2446499f8740c9c0ad7855af845f8e8355c"
+      - name: Formats tests
+        run: cargo test --locked -p craft-anything-formats
+      - name: Formatting
+        run: cargo fmt --all -- --check
+      - name: Formats lint
+        run: cargo clippy --locked -p craft-anything-formats --all-targets -- -D warnings
+      - name: Layer boundaries
+        run: cargo xtask layers
+      - name: Lock and await checks
+        run: cargo xtask locks
+      - name: Secret checks
+        run: cargo xtask secrets
+      - name: Browser analysis build
+        run: cargo xtask wasm
