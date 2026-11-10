@@ -1,0 +1,1 @@
+Verify the six source branches named in .github/scripts/afloat-new-input.json and publish only their checked runtime artifacts.
