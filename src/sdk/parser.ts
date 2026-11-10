@@ -101,7 +101,11 @@ export function parseAgentXml(raw: string, correlationId?: string | number): Par
   raw = stripCodeFences(raw);
 
   const skipMatch = SKIP_SUMMARY_TAG.exec(raw);
-  if (skipMatch) {
+  // A complete observation or summary can discuss the skip syntax as evidence.
+  // Keep the standalone sentinel (including root tags quoted in its reason)
+  // and a skip followed by an unfinished block, but never discard saved content.
+  const hasCompleteRoot = /<(observation|summary)>[\s\S]*?<\/\1>/i.test(raw);
+  if (skipMatch && (skipMatch[0] === raw.trim() || !hasCompleteRoot)) {
     const reason = skipMatch[1] ?? skipMatch[2];
     return {
       valid: true,
