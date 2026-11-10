@@ -1,4 +1,4 @@
-name: Verify new independent contributions
+name: Verify raw search performance and runtime
 
 on:
   push:
