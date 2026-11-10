@@ -1,0 +1,46 @@
+name: Verify new independent contributions
+
+on:
+  push:
+    branches: ['afloat-verify/batch130-*']
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
+      - name: Preserve verification inputs outside checkouts
+        run: |
+          cp .github/scripts/verify-batch130.py "$RUNNER_TEMP/verify-batch130.py"
+          cp .github/scripts/batch130-input.json "$RUNNER_TEMP/batch130-input.json"
+          cp .github/scripts/raw-search-benchmark.ts "$RUNNER_TEMP/raw-search-benchmark.ts"
+      - name: Verify source, behavior, and runtime artifacts
+        env:
+          GH_TOKEN: '${{ github.token }}'
+          CLAUDE_MEM_DATA_DIR: '${{ runner.temp }}/batch130-memory'
+        run: python3 "$RUNNER_TEMP/verify-batch130.py" "$RUNNER_TEMP/batch130-input.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: batch130-verification-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/*-baseline.log
+            ${{ runner.temp }}/*-changed.log
+            ${{ runner.temp }}/*-types.log
+            ${{ runner.temp }}/batch130-baseline-artifacts.json
+            ${{ runner.temp }}/batch130-verification-results.json

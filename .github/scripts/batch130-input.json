@@ -1,0 +1,10 @@
+[
+  {
+    "slug": "raw-search-snippet-window",
+    "branch": "afloat/20261110-raw-search-snippet-window",
+    "original_base": "df86baa3d7d004bba22f0e3a55f797634a946cfa",
+    "source_sha": "8ca6340f4fd4b1ee0759d3d8b9904f509fb44585",
+    "benchmark": "raw-search-benchmark.ts",
+    "tests": ["tests/sqlite/tool-use-search.test.ts"]
+  }
+]
