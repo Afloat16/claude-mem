@@ -12,7 +12,7 @@ import {
   type TranscriptObservationTransport,
 } from './processor.js';
 import { recordTimeEpochMs } from './field-utils.js';
-import { decompressZstdFrame, decompressZstdFrameBytes, isZstdSupported, scanZstdFramesInFile, type ZstdScanResult } from './zstd-frames.js';
+import { decompressZstdFrameBytes, isZstdSupported, scanZstdFramesInFile, type ZstdScanResult } from './zstd-frames.js';
 
 interface TailState {
   /**
@@ -110,16 +110,33 @@ async function zstdResumeOffset(filePath: string, size: number): Promise<number>
 const FIRST_LINE_MAX_BYTES = 1024 * 1024;
 
 /**
- * A transcript's first line: of a JSONL file, or of the text in a zstd file's
- * first frame. Only the first `limit` bytes count; null when the line (or the
- * frame) does not end within them.
+ * A transcript's first line, including one split across independent zstd
+ * frames. Only frames within `limit` count; compressed reads and the retained
+ * decoded line are bounded. Keep bytes until the newline so a frame seam
+ * cannot split a UTF-8 character in the session identity or directory.
  */
 async function readFirstLine(filePath: string, isZstd: boolean, limit: number): Promise<string | null> {
   let text: string;
   if (isZstd) {
-    const { frames } = scanZstdFramesInFile(filePath, 0, Math.min(limit, FIRST_LINE_MAX_BYTES), 1);
-    if (frames.length === 0) return null;
-    text = decompressZstdFrame(await readByteRange(filePath, 0, frames[0].end), frames[0]);
+    const end = Math.min(limit, FIRST_LINE_MAX_BYTES);
+    const chunks: Buffer[] = [];
+    let offset = 0;
+    let decodedBytes = 0;
+    while (offset < end) {
+      const { frames } = scanZstdFramesInFile(filePath, offset, end, 1);
+      if (frames.length === 0) return null;
+      const frame = frames[0];
+      const compressed = await readByteRange(filePath, frame.start, frame.end - frame.start);
+      const decoded = decompressZstdFrameBytes(compressed, { start: 0, end: compressed.length });
+      const newline = decoded.indexOf(0x0a);
+      const prefix = newline < 0 ? decoded : decoded.subarray(0, newline);
+      decodedBytes += prefix.length;
+      if (decodedBytes > FIRST_LINE_MAX_BYTES) return null;
+      chunks.push(prefix);
+      if (newline >= 0) return Buffer.concat(chunks, decodedBytes).toString('utf8');
+      offset = frame.end;
+    }
+    return null;
   } else {
     text = (await readByteRange(filePath, 0, Math.min(limit, FIRST_LINE_MAX_BYTES))).toString('utf8');
   }
