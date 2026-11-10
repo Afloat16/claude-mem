@@ -2,6 +2,9 @@ name: OpenMausBot contribution 01 verification
 on:
   push:
     branches: ['validation/batch130-maus-01']
+concurrency:
+  group: batch130-maus-01
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:
