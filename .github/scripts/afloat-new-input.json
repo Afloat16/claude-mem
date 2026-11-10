@@ -1,0 +1,131 @@
+[
+  {
+    "branch": "afloat/20261110b-embedding-finite-norm",
+    "local_sha": "0ed5cd660680cf370fbc11fba26eb30f5bd4b4c7",
+    "source_sha": "fd1b0dd175792f8f32882e8b527e193d0babd205",
+    "base": "701a504d9bd696a9d338f06615bad82a0562629f",
+    "slug": "embedding-finite-norm",
+    "regression_files": [
+      "tests/services/vector/local-embedder-invalid-vectors.test.ts"
+    ],
+    "regression_command": [
+      "bun",
+      "test",
+      "tests/services/vector/local-embedder-invalid-vectors.test.ts"
+    ],
+    "test_command": [
+      "bun",
+      "test",
+      "tests/services/vector/local-embedder-invalid-vectors.test.ts",
+      "tests/services/vector/hidden-shape.test.ts",
+      "tests/services/vector/local-embedder-chunks.test.ts"
+    ]
+  },
+  {
+    "branch": "afloat/20261110b-embedding-backfill-lock-loss",
+    "local_sha": "80743fb787287cea9508ff2d05907e05bafde58c",
+    "source_sha": "abcb3271dfde2e73011f09a8f8a91beb9c269109",
+    "base": "701a504d9bd696a9d338f06615bad82a0562629f",
+    "slug": "embedding-backfill-lock-loss",
+    "regression_files": [
+      "tests/server/embedding-backfill-lock-loss.test.ts"
+    ],
+    "regression_command": [
+      "bun",
+      "test",
+      "tests/server/embedding-backfill-lock-loss.test.ts"
+    ],
+    "test_command": [
+      "bun",
+      "test",
+      "tests/server/embedding-backfill-lock-loss.test.ts"
+    ]
+  },
+  {
+    "branch": "afloat/20261110b-server-key-mint-async",
+    "local_sha": "823895196cab9ff1ffca4a0b0a67b409aa9dcd93",
+    "source_sha": "e6a7a7e81731f2e53409259fe87b05f6badb0821",
+    "base": "701a504d9bd696a9d338f06615bad82a0562629f",
+    "slug": "server-key-mint-async",
+    "regression_files": [
+      "tests/server/runtime/key-mint-event-loop.test.ts"
+    ],
+    "regression_command": [
+      "bun",
+      "test",
+      "tests/server/runtime/key-mint-event-loop.test.ts"
+    ],
+    "test_command": [
+      "bun",
+      "test",
+      "tests/server/runtime/key-mint-event-loop.test.ts",
+      "tests/server/auth-api-key.test.ts"
+    ]
+  },
+  {
+    "branch": "afloat/20261110b-codex-stop-race",
+    "local_sha": "e203f0dc15c2c538cd941ca398b1764cbcc45ed6",
+    "source_sha": "bf2858410894d5cbbdd9eba4f0d9173aeb7cbd13",
+    "base": "701a504d9bd696a9d338f06615bad82a0562629f",
+    "slug": "codex-stop-race",
+    "regression_files": [
+      "tests/worker/codex-app-server-client.test.ts"
+    ],
+    "regression_command": [
+      "bun",
+      "test",
+      "tests/worker/codex-app-server-client.test.ts"
+    ],
+    "test_command": [
+      "bun",
+      "test",
+      "tests/worker/codex-app-server-client.test.ts",
+      "tests/worker/codex-app-server-pool.test.ts"
+    ]
+  },
+  {
+    "branch": "afloat/20261110b-parser-root-precedence",
+    "local_sha": "23c4ad84125495a3ba687baf3a518772d9b28ff0",
+    "source_sha": "2976117842187deeb111df28d25bf27018511f11",
+    "base": "701a504d9bd696a9d338f06615bad82a0562629f",
+    "slug": "parser-root-precedence",
+    "regression_files": [
+      "tests/sdk/parser-skip-precedence.test.ts"
+    ],
+    "regression_command": [
+      "bun",
+      "test",
+      "tests/sdk/parser-skip-precedence.test.ts"
+    ],
+    "test_command": [
+      "bun",
+      "test",
+      "tests/sdk/parser-skip-precedence.test.ts",
+      "tests/sdk/parser.test.ts",
+      "tests/sdk/parse-summary.test.ts",
+      "tests/sdk/parser-character-references.test.ts",
+      "tests/worker/agents/response-processor.test.ts"
+    ]
+  },
+  {
+    "branch": "afloat/20261110-media-cleanup-stage-scan",
+    "local_sha": "259523c6caff0b0d060043544a88c5697b102ce3",
+    "source_sha": "79556f2787d1103e316dcc0f42abc59a9833dd6f",
+    "base": "701a504d9bd696a9d338f06615bad82a0562629f",
+    "slug": "media-cleanup-stage-scan",
+    "regression_files": [
+      "tests/media/cleanup-staged-files.test.ts"
+    ],
+    "regression_command": [
+      "bun",
+      "test",
+      "tests/media/cleanup-staged-files.test.ts"
+    ],
+    "test_command": [
+      "bun",
+      "test",
+      "tests/media/cleanup-staged-files.test.ts",
+      "tests/media/store-conversion-lease.test.ts"
+    ]
+  }
+]

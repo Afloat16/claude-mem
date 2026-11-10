@@ -1,0 +1,56 @@
+name: Verify new contributions 01
+
+on:
+  push:
+    branches: ['afloat-verify/20261110b-batch-01']
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: claude_mem_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CLAUDE_MEM_TEST_POSTGRES_URL: postgresql://postgres:postgres@127.0.0.1:5432/claude_mem_test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
+      - name: Preserve verifier outside the contribution checkouts
+        run: |
+          cp .github/scripts/afloat-new-verify.py "$RUNNER_TEMP/new-verify.py"
+          cp .github/scripts/afloat-new-input.json "$RUNNER_TEMP/new-input.json"
+      - name: Verify regressions and build the distributed artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 "$RUNNER_TEMP/new-verify.py" "$RUNNER_TEMP/new-input.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contribution-verification-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/*-baseline.log
+            ${{ runner.temp }}/*-changed.log
+            ${{ runner.temp }}/baseline-artifacts.json
+            ${{ runner.temp }}/verification-results.json
