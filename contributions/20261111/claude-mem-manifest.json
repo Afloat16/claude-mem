@@ -389,8 +389,38 @@
           "result": "Final actual baseline 3 fail / 2 pass; fixed 5 pass / 36 assertions; 165 related pass / 787 assertions; all type/build/lane/patch gates pass."
         }
       ]
+    },
+    {
+      "number": 6009,
+      "url": "https://github.com/thedotmack/claude-mem/pull/6009",
+      "title": "fix(advisor): preserve project case variants in call listings",
+      "body": "## Problem\n\nAdvisor calls use the same stored project keys as other worker history, but `getAdvisorCalls()` compares its project filter with binary equality. Selecting `team_%/service` therefore drops calls stored under `Team_%/Service` or `TEAM_%/SERVICE`, and the HTTP list calculates pagination from the incomplete result set.\n\n## Change\n\n- Match advisor project keys with SQLite `COLLATE NOCASE`, consistent with the existing project-read contract.\n- Add an idempotent companion NOCASE index when opening the advisor table. Keep the existing index and stored project spelling.\n- Exercise the real HTTP route and file-backed SessionStore, including reopening an existing v58 advisor table, page boundaries, literal `%`/`_` characters, platform isolation, and SQLite's non-ASCII case boundary.\n\nThis uses SQLite's ASCII NOCASE behavior; it does not introduce Unicode case folding.\n\n## Validation\n\nFixed source: `f1a10af30ddbfc93135bb036705bbad25ffcf635`, based on `308a9ab4a141ac49ca0e72bbccc0c9cdf3770ca0`.\n\n- [Unchanged-main negative control](https://github.com/Afloat16/billion-context/actions/runs/43049520880/job/130622486130): the same new HTTP tests at `9b049d51fe458100fb6d37e03bed6c8c3e6d5f82` produce **2 failures and 2 passes**. The scoped list returns only the newest spelling, and the first page incorrectly reports `hasMore: false`.\n- [Final fixed-head validation](https://github.com/Afloat16/billion-context/actions/runs/43050401922/job/130625603614): **4 focused tests / 17 assertions** and **43 related tests / 112 assertions** pass. Root and viewer TypeScript, all shipped bundles, test-lane ownership, and `git diff --check` pass on Node 20 and Bun 1.4.4.\n- The [first fixed run](https://github.com/Afloat16/billion-context/actions/runs/43049520880/job/130622486489) passed all four new tests but failed the existing exact NOCASE-index inventory because it did not yet include the new index. The final commit adds that expected index; the final job also verifies the production change and new HTTP fixture are identical to the first fixed revision.\n\nRelated suites cover advisor storage, routes, Stop-hook capture, transcript extraction, project-key collation, and project-scoped listings. Existing advisor capture changes (#3165, #4526, #4644, #5747) do not address this project-filter mismatch.",
+      "head": "fix/advisor-project-case-20261111",
+      "commit": "f1a10af30ddbfc93135bb036705bbad25ffcf635",
+      "base": "main",
+      "base_sha": "308a9ab4a141ac49ca0e72bbccc0c9cdf3770ca0",
+      "state": "open",
+      "merged": false,
+      "mergeable": true,
+      "created_at": "2026-11-11T15:45:50Z",
+      "updated_at": "2026-11-11T15:45:51Z",
+      "validation_history": [
+        {
+          "run": 43049520880,
+          "baseline_job": 130622486130,
+          "baseline": "2 failures, 2 passes, 9 assertions; actual HTTP omission and hasMore reproduced",
+          "fixed_job": 130622486489,
+          "result": "4 focused tests / 17 assertions pass; 42 related tests pass and exact existing NOCASE index inventory fails because new index was not yet listed. Types/build skipped."
+        },
+        {
+          "run": 43050401922,
+          "job": 130625603614,
+          "commit": "f1a10af30ddbfc93135bb036705bbad25ffcf635",
+          "result": "4 focused tests / 17 assertions and 43 related tests / 112 assertions pass; root/viewer TypeScript, all bundles, lanes, diff check pass. Source and focused fixture identical to initial fixed revision."
+        }
+      ]
     }
   ],
-  "status_as_of": "2026-11-11T15:27:49Z",
+  "status_as_of": "2026-11-11T15:45:51Z",
   "notes": "Actual PR ledger; an open PR is not a merge. Validation details and original failure records remain in each PR body."
 }
