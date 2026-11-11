@@ -1114,8 +1114,97 @@
           }
         }
       ]
+    },
+    {
+      "number": 6029,
+      "url": "https://github.com/thedotmack/claude-mem/pull/6029",
+      "title": "fix(smart-read): extract function signatures at native body boundaries",
+      "body": "## Problem\n\nSmart file reads currently find a function header's end by looking for the first `{` in its first ten lines. That brace can belong to a destructured parameter, default object or closure, annotation argument, string, or object return type. The resulting outline loses part of the actual header; a real `smart_search` for a later parameter cannot find the function. Expression bodies and shell subshell bodies also need their native boundary rather than a brace guess.\n\n## Change\n\nCapture the function body's start from each supported native tree-sitter query and extract the signature up to that boundary. Bodyless declarations retain the native header node. Preserve export and variable prefixes, and start comma-separated JavaScript/TypeScript function values at their own declarator.\n\nKeep TypeScript abstract-method terminators from the adjacent class-body syntax node, including comments before an explicit semicolon, without consuming the next member. Preserve the existing 200-character signature limit, symbol names/owners, unfold ranges, and the Python/Ruby/Lua `sig_end` paths.\n\nThis addresses one shared header-extraction problem across JavaScript/TypeScript, Go, Rust, C/C++, Java, PHP, Kotlin, Swift, Scala, Bash, and Zig. It does not add new function kinds. #4997 handles the separate existing Python/Ruby/Lua header path; that path remains unchanged here.\n\n## Validation\n\nThe [fixed-SHA comparison and product gates](https://github.com/Afloat16/billion-context/actions/runs/43069586653/job/130693532942) use Bun 1.4.4, Node 20 and the actual native parser.\n\n- Unchanged main `308a9ab4a141ac49ca0e72bbccc0c9cdf3770ca0` plus the original regressions at `fb09d44807900c2f732a42fb8a1319cca03da3f9`: **18 failed, 1 passed, 28 assertions**. This includes the real search regression.\n- Final head `cbd3ebc68f0db271e60250040c5238c4cce48231`: **21 passed, 81 assertions**. Tests check complete headers, outline/search/unfold behavior, the length limit, explicit and implicit abstract-method termination, and bodyless controls.\n- All native smart-file regressions: **298 passed, 998 assertions across 62 files**.\n- Both root and viewer TypeScript checks and every shipped bundle/distribution build passed.\n- The actual fixture files also passed Node syntax checking, TypeScript type checking, `g++ -std=c++17 -Wall -Werror -fsyntax-only`, `javac --release 17`, `go tool compile`, `rustc`, `php -l`, `kotlinc`, `swiftc -typecheck`, and `bash -n`. Scala and Zig fixtures were verified by their native tree-sitter parsers; they were not compiled with language compilers.\n\nThe comparison run is **red overall** because its final patch check referenced a base commit omitted by the shallow checkout, after all product gates above passed. A [separate check of the same final head](https://github.com/Afloat16/billion-context/actions/runs/43070906016/job/130698184262) explicitly fetched that fixed base: `git diff --check` and lane ownership both passed (1,456 test files; no missing or overlapping assignments).\n\n### Validation history\n\nThe first fixture-compiler attempt stopped at TypeScript 6's required `--ignoreConfig` flag before product tests ran. The subsequent [initial implementation run](https://github.com/Afloat16/billion-context/actions/runs/43068097494/job/130688336921) passed its 19 focused tests but exposed two existing abstract-method semicolon regressions in the complete suite. The final native terminator capture and two additional controls fix those regressions; the final 298-test result above includes them. These earlier failures are retained rather than reported as successful runs.\n",
+      "head": "fix/native-signature-boundaries-20261111",
+      "commit": "cbd3ebc68f0db271e60250040c5238c4cce48231",
+      "base": "main",
+      "base_sha": "308a9ab4a141ac49ca0e72bbccc0c9cdf3770ca0",
+      "state": "open",
+      "merged": false,
+      "mergeable": true,
+      "created_at": "2026-11-11T17:48:13Z",
+      "updated_at": "2026-11-11T17:48:13Z",
+      "validation_history": [
+        {
+          "run": 43066827130,
+          "job": 130683920231,
+          "conclusion": "failure",
+          "reason": "Fixture compiler command required TypeScript 6 --ignoreConfig; product tests did not run."
+        },
+        {
+          "run": 43068097494,
+          "job": 130688336921,
+          "conclusion": "failure",
+          "head": "3f32bcf62179ed1baaf9a31c00ebec89f5fc7d0e",
+          "focused": {
+            "pass": 19,
+            "fail": 0,
+            "assertions": 69
+          },
+          "all_native": {
+            "pass": 294,
+            "fail": 2,
+            "assertions": 984,
+            "files": 62
+          },
+          "reason": "Existing abstract-method signatures lost explicit semicolons; fixed in final head."
+        },
+        {
+          "run": 43069586653,
+          "job": 130693532942,
+          "url": "https://github.com/Afloat16/billion-context/actions/runs/43069586653/job/130693532942",
+          "conclusion": "failure",
+          "head": "cbd3ebc68f0db271e60250040c5238c4cce48231",
+          "baseline": "fb09d44807900c2f732a42fb8a1319cca03da3f9",
+          "baseline_result": {
+            "pass": 1,
+            "fail": 18,
+            "assertions": 28
+          },
+          "fixed_result": {
+            "pass": 21,
+            "fail": 0,
+            "assertions": 81
+          },
+          "all_native": {
+            "pass": 298,
+            "fail": 0,
+            "assertions": 998,
+            "files": 62
+          },
+          "gates_passed": [
+            "actual Node/TypeScript/g++/javac/Go/Rust/PHP/Kotlin/Swift/Bash fixture validation",
+            "root/viewer TypeScript",
+            "all shipped bundles/distribution"
+          ],
+          "reason": "All product gates passed; final git diff --check could not find shallow base 308a9ab. Lane ownership not run in this job."
+        },
+        {
+          "run": 43070906016,
+          "job": 130698184262,
+          "url": "https://github.com/Afloat16/billion-context/actions/runs/43070906016/job/130698184262",
+          "conclusion": "success",
+          "head": "cbd3ebc68f0db271e60250040c5238c4cce48231",
+          "gates": [
+            "git diff --check after explicit base fetch",
+            "lane ownership"
+          ],
+          "lanes": {
+            "all": 1456,
+            "fast": 1318,
+            "integration": 138,
+            "overlap": 0,
+            "unassigned": 0
+          }
+        }
+      ]
     }
   ],
-  "status_as_of": "2026-11-11T17:36:13.398Z",
+  "status_as_of": "2026-11-11T17:48:13Z",
   "notes": "Actual PR ledger; an open PR is not a merge. Validation details and original failure records remain in each PR body."
 }
