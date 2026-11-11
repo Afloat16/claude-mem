@@ -114,14 +114,13 @@ const QUERIES: Record<string, string> = {
 (method_definition name: [(property_identifier) (private_property_identifier) (string) (number) (computed_property_name)] @name) @method
 (abstract_method_signature name: [(property_identifier) (private_property_identifier) (string) (number) (computed_property_name)] @name) @method
 (public_field_definition name: (_) @name value: [(arrow_function) (function_expression) (generator_function)]) @method
-(public_field_definition name: (_) @name value: [(parenthesized_expression) (as_expression) (satisfies_expression) (non_null_expression) (type_assertion) (instantiation_expression)] @callable_initializer) @method
-(lexical_declaration (variable_declarator name: (identifier) @name value: [(parenthesized_expression) (as_expression) (satisfies_expression) (non_null_expression) (type_assertion) (instantiation_expression)] @callable_initializer)) @const_func
-(variable_declaration (variable_declarator name: (identifier) @name value: [(parenthesized_expression) (as_expression) (satisfies_expression) (non_null_expression) (type_assertion) (instantiation_expression)] @callable_initializer)) @const_func
+(public_field_definition name: (_) @name value: [(parenthesized_expression) (as_expression) (satisfies_expression) (non_null_expression) (instantiation_expression)] @callable_initializer) @method
+(lexical_declaration (variable_declarator name: (identifier) @name value: [(parenthesized_expression) (as_expression) (satisfies_expression) (non_null_expression) (instantiation_expression)] @callable_initializer)) @const_func
+(variable_declaration (variable_declarator name: (identifier) @name value: [(parenthesized_expression) (as_expression) (satisfies_expression) (non_null_expression) (instantiation_expression)] @callable_initializer)) @const_func
 (parenthesized_expression (expression) @wrapped_value) @transparent_value
 (as_expression (expression) @wrapped_value) @transparent_value
 (satisfies_expression (expression) @wrapped_value) @transparent_value
 (non_null_expression (expression) @wrapped_value) @transparent_value
-(type_assertion (expression) @wrapped_value) @transparent_value
 (instantiation_expression (expression) @wrapped_value) @transparent_value
 [(arrow_function) (function_expression) (generator_function)] @callable_value
 (interface_declaration name: (type_identifier) @name) @iface
@@ -371,11 +370,21 @@ const QUERIES: Record<string, string> = {
 `,
 };
 
+// Angle-bracket assertions are TypeScript-only: TSX reserves that syntax for
+// JSX and has no type_assertion node, so mentioning it invalidates a TSX query.
+QUERIES.typescript = QUERIES.jsts + `
+(public_field_definition name: (_) @name value: (type_assertion) @callable_initializer) @method
+(lexical_declaration (variable_declarator name: (identifier) @name value: (type_assertion) @callable_initializer)) @const_func
+(variable_declaration (variable_declarator name: (identifier) @name value: (type_assertion) @callable_initializer)) @const_func
+(type_assertion (expression) @wrapped_value) @transparent_value
+`;
+
 function getQueryKey(language: string): string {
   switch (language) {
     case "javascript":
       return "js";
     case "typescript":
+      return "typescript";
     case "tsx":
       return "jsts";
     case "python": return "python";

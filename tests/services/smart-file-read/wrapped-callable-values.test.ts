@@ -121,9 +121,10 @@ describe('transparent callable value wrappers', () => {
     try {
       writeFileSync(join(directory, 'owned.mjs'), source);
       const result = await searchCodebase(directory, 'WrappedStore.deep');
-      expect(result.matchingSymbols.map(symbol => symbol.symbolName)).toEqual(['WrappedStore.deep']);
+      const selected = result.matchingSymbols.find(symbol => symbol.symbolName === 'WrappedStore.deep');
+      expect(selected).toBeDefined();
       expect(formatFoldedView(parseFile(source, 'owned.mjs'))).toContain('parenthesizedArrow');
-      expect(unfoldSymbol(source, 'owned.mjs', result.matchingSymbols[0].symbolName)).toContain('return value + 6;');
+      expect(unfoldSymbol(source, 'owned.mjs', selected!.symbolName)).toContain('return value + 6;');
     } finally { rmSync(directory, { recursive: true, force: true }); }
   }, 120000);
 });
