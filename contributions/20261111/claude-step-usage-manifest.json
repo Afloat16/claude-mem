@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "repository": "thedotmack/claude-mem",
+  "fork": "Afloat16/claude-mem",
+  "updated_at": "2026-11-11 17:58:48 UTC",
+  "created_prs": 0,
+  "merged_prs": 0,
+  "items": [
+    {
+      "state": "validation_in_progress",
+      "title": "Count repeated Claude assistant usage once per step",
+      "base": "51ecfbe540b634f77eaa52e469b9bedadfd6b1e0",
+      "branch": "fix/claude-assistant-usage-dedup-20261111",
+      "head": "c1ef17789fdb163e9ceeca9cb90bd32a205a9089",
+      "pr_number": null,
+      "pr_url": null,
+      "merged": false,
+      "problem": "The live SDK emits one assistant frame per completed content block; frames from one step repeat the same message.id and usage snapshot. ClaudeProvider currently adds each snapshot, inflating cumulative input/cache usage and persisted discovery_tokens.",
+      "change": "Deduplicate reported usage by nonempty string message.id for the current turn, without skipping content dispatch. Register an ID only when a usage block exists and clear the set at the result boundary. Unidentified gateway frames keep their existing fallback behavior; result usage, retry/handoff and paid-send rules are unchanged.",
+      "files": [
+        "src/services/worker/ClaudeProvider.ts",
+        "src/services/worker/observer-usage.ts",
+        "tests/worker/claude-provider-step-usage.test.ts"
+      ],
+      "deduplication": {
+        "all_state_pr_queries": [
+          "\"ClaudeProvider\" \"usage\"",
+          "\"message.id\" \"usage\"",
+          "\"double\" \"token\"",
+          "\"accumulateClaudeUsage\"",
+          "\"usage\" \"multipart\"",
+          "\"usage\" \"deduplicate\"",
+          "\"input_tokens\" \"assistant\"",
+          "\"cumulativeOutputTokens\""
+        ],
+        "related_distinct_prs": [
+          {
+            "number": 3508,
+            "scope": "Expose cumulative usage and separate cache-read totals"
+          },
+          {
+            "number": 3668,
+            "scope": "Correct zero-input gateway usage from final result"
+          },
+          {
+            "number": 5293,
+            "scope": "Log finalized per-turn usage"
+          },
+          {
+            "number": 5772,
+            "scope": "Retain completed historical transcript usage, not live SDK frames"
+          },
+          {
+            "number": 6006,
+            "scope": "Invalidate cached context after discovery-token corrections"
+          }
+        ],
+        "batch_manifest_checked": "https://raw.githubusercontent.com/Afloat16/claude-mem/fe2e356174ceea2c2a9b43db5a1a87e478dcb065/contributions/20261111/claude-mem-manifest.json",
+        "competing_scope_found": false
+      },
+      "sources": [
+        "https://code.claude.com/docs/en/agent-sdk/cost-tracking#track-per-step-usage",
+        "https://code.claude.com/docs/en/agent-sdk/streaming-output#message-flow"
+      ],
+      "native_protocol": {
+        "run_url": "https://github.com/Afloat16/billion-context/actions/runs/43071470493",
+        "job_url": "https://github.com/Afloat16/billion-context/actions/runs/43071470493/job/130700212627",
+        "carrier_head": "9ddea9f3bd001122f0e8e61a9426a67808b66799",
+        "result": "success",
+        "sdk_version": "0.3.172",
+        "source": "actual SDK and bundled CLI, served by an owned localhost SSE fixture; no paid model request",
+        "start_usage": {
+          "input_tokens": 11,
+          "cache_creation_input_tokens": 23,
+          "cache_read_input_tokens": 101,
+          "output_tokens": 1
+        },
+        "assistant_frames": [
+          {
+            "id": "msg_owned_multipart_usage",
+            "content": [
+              {
+                "type": "text",
+                "text": "first independent block"
+              }
+            ],
+            "usage": {
+              "input_tokens": 11,
+              "cache_creation_input_tokens": 23,
+              "cache_read_input_tokens": 101,
+              "output_tokens": 1
+            }
+          },
+          {
+            "id": "msg_owned_multipart_usage",
+            "content": [
+              {
+                "type": "text",
+                "text": "second independent block"
+              }
+            ],
+            "usage": {
+              "input_tokens": 11,
+              "cache_creation_input_tokens": 23,
+              "cache_read_input_tokens": 101,
+              "output_tokens": 1
+            }
+          }
+        ],
+        "result_usage": {
+          "input_tokens": 11,
+          "cache_creation_input_tokens": 23,
+          "cache_read_input_tokens": 101,
+          "output_tokens": 17,
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "",
+          "iterations": [],
+          "speed": "standard"
+        },
+        "requests": [
+          {
+            "path": "/",
+            "method": "HEAD",
+            "tools": 0
+          },
+          {
+            "path": "/v1/messages?beta=true",
+            "method": "POST",
+            "model": "claude-sonnet-4-6",
+            "streaming": true,
+            "tools": 0
+          }
+        ],
+        "repeated_input_plus_creation": 68,
+        "once_per_step_input_plus_creation": 34
+      },
+      "independent_review": {
+        "head": "c1ef17789fdb163e9ceeca9cb90bd32a205a9089",
+        "blocking_findings": []
+      },
+      "validation": {
+        "run_url": "https://github.com/Afloat16/billion-context/actions/runs/43073190994",
+        "carrier_head": "ceb223a5488e80738ccd3dad4b3dc1896bb1d997",
+        "status": "in_progress",
+        "result": null,
+        "planned": [
+          "Original/fixed ten-case comparisons through real ClaudeProvider, ResponseProcessor and SessionStore SQLite",
+          "Native protocol check with the actual SDK resolved by npm install",
+          "All Claude worker and shared observer-usage tests",
+          "Root/viewer TypeScript",
+          "All distribution bundles",
+          "Test-lane coverage and patch whitespace"
+        ],
+        "expected_baseline": {
+          "passed": 5,
+          "failed": 5
+        },
+        "expected_fixed": {
+          "passed": 10,
+          "failed": 0
+        },
+        "expectations_are_not_results": true
+      },
+      "publication": {
+        "status": "awaiting_validated_results",
+        "permission": "User has authorized direct pull request creation"
+      }
+    }
+  ]
+}
