@@ -101,11 +101,13 @@
       "commit": "35c51e4b658b1724ad58d7df9d3cc94f40be2e91",
       "base": "main",
       "base_sha": "6b779c06796138aeb4b0ee2fa7dbd25912e4f7fb",
-      "state": "open",
-      "merged": false,
+      "state": "closed",
+      "merged": true,
       "mergeable": null,
       "created_at": "2026-11-11T10:46:02Z",
-      "updated_at": "2026-11-11T10:48:19Z"
+      "updated_at": "2026-11-11T17:44:24Z",
+      "merged_at": "2026-11-11T17:44:17Z",
+      "merge_commit_sha": "51ecfbe540b634f77eaa52e469b9bedadfd6b1e0"
     },
     {
       "number": 5981,
@@ -1205,6 +1207,6 @@
       ]
     }
   ],
-  "status_as_of": "2026-11-11T17:48:13Z",
+  "status_as_of": "2026-11-11T17:49:00Z",
   "notes": "Actual PR ledger; an open PR is not a merge. Validation details and original failure records remain in each PR body."
 }
