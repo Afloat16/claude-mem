@@ -66,16 +66,56 @@
       "number": 5977,
       "url": "https://github.com/thedotmack/claude-mem/pull/5977",
       "title": "fix(parser): preserve closing tags inside XML literals",
-      "body": "## Problem\n\nAn observer can describe XML in a CDATA section, for example a narrative containing `</observation>`. The parser currently treats that literal as the record terminator, silently truncates the saved narrative, and drops the fields that follow it. The same issue affects summary fields and fact arrays. A commented document example can also be selected ahead of the actual reply.\n\n## Change\n\nMask angle brackets inside CDATA sections and XML comments while matching the reply's structure. Recover field contents from the original text using the unchanged offsets, preserving the existing CDATA/entity storage behavior. Apply the same masking to the unfinished-observation check so a literal closing tag cannot complete a truncated response. Document this parsing boundary in the observer lifecycle notes.\n\n## Validation\n\n- Five regression cases fail on the base commit: observation truncation, summary truncation, array truncation, commented examples, and unfinished CDATA.\n- Parser, character-reference, and response-processor suites: **112 passed, 424 assertions**. The new observation regression also stores and reads the parsed content through the real SQLite SessionStore.\n- Media observation-turn integration suite: **51 passed, 306 assertions**, covering attachment parsing and linkage.\n- Root and viewer TypeScript checks passed.\n- `node scripts/build-hooks.js`: all bundle targets and distribution checks passed.\n\nBased on current main `6b779c06796138aeb4b0ee2fa7dbd25912e4f7fb`. Checked the parser's commit history and all historical PR titles/bodies: this addresses structural matching of literal markup, distinct from character-reference decoding (#4360), skip dispatch inside an already-selected document (#5702), and nested-field matching (#835).\n\n## CI matrix follow-up\n\nThe sync-api matrix job remains failed at `scripts/sync-matrix-e2e.ts:598`: `review fingerprints agree across distinct replica ids` ([job log](https://github.com/thedotmack/claude-mem/actions/runs/43000892066/job/130456439523)). To check whether this patch introduced it, I ran the unmodified `bun scripts/sync-matrix-e2e.ts` twice in the same Linux environment with Bun 1.4.4 and PostgreSQL 16.15, recreating the database and using a separate empty data directory for each run. Both upstream main `6b779c06796138aeb4b0ee2fa7dbd25912e4f7fb` and this PR's source at `4e9f3466b9bb5591669e1f27410033001ae00e4c` fail at that same assertion after the shared group membership and 60 percent progress check passes. This reproduces the failure on the existing base; it does not turn the failed CI check into a pass. The other nine substantive CI checks passed.\n\nUpstream investigation [#6007](https://github.com/thedotmack/claude-mem/issues/6007) also cites this matrix run and identifies a shared-activity publication failure: after a transient SQLite writer lock, the reconciler advances its capture cache despite the failed publication. The existing, still-open fix [#5870](https://github.com/thedotmack/claude-mem/pull/5870) addresses that ordering and signature-cache path. Its regression holds a writer lock on a second real SQLite connection, rolls it back without changing `data_version`, then verifies that the next ordinary reconcile publishes provenance, transfers the linked work to another store, and does not add duplicate records on another unchanged pass. That sync fix is separate from this parser patch. The original failed matrix check above remains failed; neither this link nor the independent reproduction changes its status.",
+      "body": "## Problem\n\nAn observer can describe XML in a CDATA section, for example a narrative containing `</observation>`. The parser currently treats that literal as the record terminator, silently truncates the saved narrative, and drops the fields that follow it. The same issue affects summary fields and fact arrays. A commented document example can also be selected ahead of the actual reply.\n\n## Change\n\nMask angle brackets inside CDATA sections and XML comments while matching the reply's structure. Recover field contents from the original text using the unchanged offsets, preserving the existing CDATA/entity storage behavior. Apply the same masking to the unfinished-observation check so a literal closing tag cannot complete a truncated response. Keep this parsing boundary documented next to the masking function.\n\n## Validation\n\n- Five regression cases fail on the base commit: observation truncation, summary truncation, array truncation, commented examples, and unfinished CDATA.\n- Parser, character-reference, and response-processor suites: **112 passed, 424 assertions**. The new observation regression also stores and reads the parsed content through the real SQLite SessionStore.\n- Media observation-turn integration suite: **51 passed, 306 assertions**, covering attachment parsing and linkage.\n- Root and viewer TypeScript checks passed.\n- `node scripts/build-hooks.js`: all bundle targets and distribution checks passed.\n\nBased on current main `6b779c06796138aeb4b0ee2fa7dbd25912e4f7fb`. Checked the parser's commit history and all historical PR titles/bodies: this addresses structural matching of literal markup, distinct from character-reference decoding (#4360), skip dispatch inside an already-selected document (#5702), and nested-field matching (#835).\n\n## CI matrix follow-up\n\nThe sync-api matrix job remains failed at `scripts/sync-matrix-e2e.ts:598`: `review fingerprints agree across distinct replica ids` ([job log](https://github.com/thedotmack/claude-mem/actions/runs/43000892066/job/130456439523)). To check whether this patch introduced it, I ran the unmodified `bun scripts/sync-matrix-e2e.ts` twice in the same Linux environment with Bun 1.4.4 and PostgreSQL 16.15, recreating the database and using a separate empty data directory for each run. Both upstream main `6b779c06796138aeb4b0ee2fa7dbd25912e4f7fb` and this PR's source at `4e9f3466b9bb5591669e1f27410033001ae00e4c` fail at that same assertion after the shared group membership and 60 percent progress check passes. This reproduces the failure on the existing base; it does not turn the failed CI check into a pass. The other nine substantive CI checks passed.\n\nUpstream investigation [#6007](https://github.com/thedotmack/claude-mem/issues/6007) also cites this matrix run and identifies a shared-activity publication failure: after a transient SQLite writer lock, the reconciler advances its capture cache despite the failed publication. The existing, still-open fix [#5870](https://github.com/thedotmack/claude-mem/pull/5870) addresses that ordering and signature-cache path. Its regression holds a writer lock on a second real SQLite connection, rolls it back without changing `data_version`, then verifies that the next ordinary reconcile publishes provenance, transfers the linked work to another store, and does not add duplicate records on another unchanged pass. That sync fix is separate from this parser patch. The original failed matrix check above remains failed; neither this link nor the independent reproduction changes its status.\n\n## Cross-record comment review follow-up\n\nThe branch retains the maintainer's main merge and terminated-literal correction at `3a64199d40a185b91853a0196ddaebb7e9cf3a71`. [The subsequent review](https://github.com/thedotmack/claude-mem/pull/5977#discussion_r4541187883) found that a bare `<!--` in one observation could still pair with a complete comment in the next observation, hiding the intervening record boundary.\n\nHead `7a7f46c6f22a1f46ad82ed84712c5e88401d1b78` rejects a comment candidate that crosses another comment opener. Comments cannot nest, so the later opener starts its own candidate. CDATA matching is unchanged.\n\nThe [fixed-SHA review comparison](https://github.com/Afloat16/billion-context/actions/runs/43073028069/job/130705609467) passed with Bun 1.4.4 and Node 20:\n\n- Reviewed head `3a64199d` plus the same added regressions at `ce458825812ce94264946ca1d92bc5d2f4f59f6b`: **7 passed, 2 failed, 24 assertions**. The two failures reproduce lost separate observations and loss of the completed first record when the second is unfinished.\n- Final head: **9 passed, 28 assertions**. Both complete observations retain their titles, narratives and facts through actual SQLite storage. Legal comments and CDATA containing apparent record tags remain literal, and an unfinished second observation remains reported as unfinished.\n- Parser, character-reference and response-processing regressions: **132 passed, 480 assertions across 9 files**.\n- Media observation-turn integration: **51 passed, 306 assertions**.\n- Root/viewer TypeScript, all shipped bundles/distribution, patch whitespace and lane ownership passed.\n\nThis repairs the existing PR; it does not replace the original sync-matrix failure record above or claim that older run became green.\n",
       "head": "fix/parser-literal-markup-20261111",
-      "commit": "4e9f3466b9bb5591669e1f27410033001ae00e4c",
+      "commit": "7a7f46c6f22a1f46ad82ed84712c5e88401d1b78",
       "base": "main",
       "base_sha": "6b779c06796138aeb4b0ee2fa7dbd25912e4f7fb",
       "state": "open",
       "merged": false,
-      "mergeable": null,
+      "mergeable": true,
       "created_at": "2026-11-11T10:07:03Z",
-      "updated_at": "2026-11-11T10:36:44Z"
+      "updated_at": "2026-11-11T18:02:52Z",
+      "validation_history": [
+        {
+          "run": 43073028069,
+          "job": 130705609467,
+          "url": "https://github.com/Afloat16/billion-context/actions/runs/43073028069/job/130705609467",
+          "conclusion": "success",
+          "review_comment": "https://github.com/thedotmack/claude-mem/pull/5977#discussion_r4541187883",
+          "maintainer_parent": "3a64199d40a185b91853a0196ddaebb7e9cf3a71",
+          "head": "7a7f46c6f22a1f46ad82ed84712c5e88401d1b78",
+          "baseline": "ce458825812ce94264946ca1d92bc5d2f4f59f6b",
+          "baseline_result": {
+            "pass": 7,
+            "fail": 2,
+            "assertions": 24
+          },
+          "fixed_result": {
+            "pass": 9,
+            "fail": 0,
+            "assertions": 28
+          },
+          "related": {
+            "pass": 132,
+            "fail": 0,
+            "assertions": 480,
+            "files": 9
+          },
+          "media": {
+            "pass": 51,
+            "fail": 0,
+            "assertions": 306
+          },
+          "gates": [
+            "root/viewer TypeScript",
+            "all shipped bundles/distribution",
+            "patch whitespace",
+            "lane ownership"
+          ],
+          "note": "Maintainer merge/terminated-literal change retained; earlier sync-matrix failure remains historical failure."
+        }
+      ]
     },
     {
       "number": 5979,
@@ -1207,6 +1247,6 @@
       ]
     }
   ],
-  "status_as_of": "2026-11-11T17:49:00Z",
+  "status_as_of": "2026-11-11T18:02:52Z",
   "notes": "Actual PR ledger; an open PR is not a merge. Validation details and original failure records remain in each PR body."
 }
