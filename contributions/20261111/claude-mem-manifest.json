@@ -441,8 +441,170 @@
           "result": "4 tests / 17 assertions pass; only child timeout changed and production bytes verified identical; real idle child terminated by a 100 ms deadline in 100.98 ms."
         }
       ]
+    },
+    {
+      "number": 6011,
+      "url": "https://github.com/thedotmack/claude-mem/pull/6011",
+      "title": "perf(viewer): bound legacy prompt retry lookups by time",
+      "body": "## Problem\n\nThe prompt feed checks each legacy prompt for a later same-text retry in its session. Its current time-difference predicate cannot constrain the lookup index by time, so a long session repeatedly scans its full history before ordering and paginating the result. These are synchronous SQLite reads on the worker.\n\n## Change\n\n- Express the existing inclusive ten-second window as a bounded timestamp range.\n- Add a partial `(session_db_id, created_at_epoch)` index for legacy rows with no native prompt ID. It indexes timestamps rather than copying prompt text.\n- Keep the existing newest-timestamp/newest-ID rule, distinct native turns, project/platform/session scope, and pagination behavior.\n- Cover the actual production query and reopen an existing database. The older native-identity migration fixture also removes the new dependent index before simulating a table without `native_prompt_id`.\n\n## Measured effect\n\n[Same-runner comparison](https://github.com/Afloat16/billion-context/actions/runs/43053026084/job/130634984470), Bun 1.4.4 on Linux: each revision opens a separate owned SQLite database with **12,000 distinct legacy prompts in one session**, spaced five seconds apart. The benchmark calls the actual `PaginationHelper.getPrompts()`, warms each page once, then measures five reads. Database setup is outside the query timings.\n\n| Page, 50 rows | Main median (range), ms | Fixed median (range), ms |\n| --- | ---: | ---: |\n| First page | 15,271.95 (15,236.78–15,447.10) | 19.04 (18.12–19.79) |\n| Offset 6,000 | 15,197.70 (15,133.83–15,469.37) | 24.05 (23.34–27.84) |\n\nBoth complete returned page objects have identical SHA-256 hashes across revisions:\n- First page: `809e4086b6e13e5cc4450d1819865655e4b95c9ff6d5e7b692162aba6d8ce6fc`\n- Offset 6,000: `244a2e6427a93d76de85ff64d8c92c8a1281004368e00c06431e16b4ebf7b45c`\n\nThe query plan changes from a session-only lookup to a session lookup bounded by both timestamp endpoints. These timings describe this concentrated-session fixture, not every history distribution. The log also records insertion and existing-database reopen times; the new index has a write/storage cost.\n\n<details>\n<summary>All five query measurements, in milliseconds</summary>\n\n- Main, first page: 15447.10, 15271.95, 15266.46, 15306.97, 15236.78\n- Fixed, first page: 19.36, 19.79, 18.51, 18.12, 19.04\n- Main, offset 6,000: 15133.83, 15469.37, 15282.86, 15197.70, 15173.63\n- Fixed, offset 6,000: 24.05, 25.01, 23.64, 27.84, 23.34\n\n</details>\n\n## Validation\n\nFinal head: `7487cc5d29d2b7f7fed598999e2704e0ec9b74ea`, based on `308a9ab4a141ac49ca0e72bbccc0c9cdf3770ca0`.\n\n- On unchanged main with the new tests (`ef0051e57af8cbea0160b13a47bf0bee2706e94d`), all **four semantic groups pass**; only the test requiring a bounded lookup in the actual SQLite query plan fails. This is a query-performance change, not a change to which prompts are visible.\n- [Final gates](https://github.com/Afloat16/billion-context/actions/runs/43054777484/job/130641177988): **5 focused tests / 17 assertions**, **33 related tests / 179 assertions**, root and viewer TypeScript, all shipped bundles, test-lane coverage, and `git diff --check` pass.\n- Boundaries include retries at 9,999, 10,000 and 10,001 ms, equal timestamps, native IDs, page boundaries and independent session/platform/project scopes.\n- The first comparison run passed the benchmark and all new regressions, then an existing migration fixture failed while dropping a column still referenced by the new index (**32 related passes, 1 failure**). The final fixture removes that index as part of restoring the old schema. The final job verifies production bytes are identical to measured implementation `864dd004`; the new regression's child also has a verified 20-second deadline.\n\nHistory checked: #2515 added retry deduplication, #4747 fixed feed ordering, and #4748 preserved native prompt identities. This keeps those contracts while bounding the legacy retry lookup.",
+      "head": "perf/legacy-prompt-window-20261111",
+      "commit": "7487cc5d29d2b7f7fed598999e2704e0ec9b74ea",
+      "base": "main",
+      "base_sha": "308a9ab4a141ac49ca0e72bbccc0c9cdf3770ca0",
+      "state": "open",
+      "merged": false,
+      "mergeable": true,
+      "created_at": "2026-11-11T16:12:46Z",
+      "updated_at": "2026-11-11T16:12:46Z",
+      "validation_history": [
+        {
+          "run": 43053026084,
+          "job": 130634984470,
+          "commit": "864dd004f919ef2158d58229f900a3edb9c55f36",
+          "result": "Baseline 4 semantic groups pass and bounded-plan test fails; fixed 5 focused tests / 17 assertions pass. Actual production pages equal; repeated latency measurements retained below. Related suite 32 pass / 1 failure: old-schema fixture had not yet dropped the new index before dropping native_prompt_id."
+        },
+        {
+          "run": 43053567787,
+          "job": 130636930759,
+          "commit": "f764afcfddfd8ddce916e7948abdf283fc3eaf9e",
+          "result": "5 focused tests / 17 assertions; only a child deadline added, production bytes unchanged."
+        },
+        {
+          "run": 43054777484,
+          "job": 130641177988,
+          "commit": "7487cc5d29d2b7f7fed598999e2704e0ec9b74ea",
+          "result": "5 focused tests / 17 assertions plus 33 related tests / 179 assertions pass. Root/viewer TypeScript, all bundles, lanes, diff checks pass; production identity with measured head verified."
+        }
+      ],
+      "benchmark": {
+        "main": {
+          "label": "main",
+          "bun": "1.4.4",
+          "rows": 12000,
+          "pageSize": 50,
+          "deepOffset": 6000,
+          "rounds": 5,
+          "firstMs": [
+            15447.096758999996,
+            15271.950880999997,
+            15266.46392699999,
+            15306.971055999995,
+            15236.779019000009
+          ],
+          "deepMs": [
+            15133.830013000006,
+            15469.369475,
+            15282.860948000001,
+            15197.699057999998,
+            15173.628874999995
+          ],
+          "firstMedianMs": 15271.950880999997,
+          "deepMedianMs": 15197.699057999998,
+          "seedMs": 83.57769499999999,
+          "reopenMs": 6.35028299999999,
+          "firstDigest": "809e4086b6e13e5cc4450d1819865655e4b95c9ff6d5e7b692162aba6d8ce6fc",
+          "deepDigest": "244a2e6427a93d76de85ff64d8c92c8a1281004368e00c06431e16b4ebf7b45c",
+          "firstCount": 50,
+          "deepCount": 50,
+          "plan": [
+            {
+              "id": 9,
+              "parent": 0,
+              "notused": 61,
+              "detail": "SEARCH up USING INDEX idx_user_prompts_claude_session (content_session_id=?)"
+            },
+            {
+              "id": 17,
+              "parent": 0,
+              "notused": 0,
+              "detail": "CORRELATED SCALAR SUBQUERY 1"
+            },
+            {
+              "id": 24,
+              "parent": 17,
+              "notused": 61,
+              "detail": "SEARCH duplicate USING INDEX idx_user_prompts_lookup (session_db_id=?)"
+            },
+            {
+              "id": 54,
+              "parent": 0,
+              "notused": 45,
+              "detail": "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)"
+            },
+            {
+              "id": 77,
+              "parent": 0,
+              "notused": 0,
+              "detail": "USE TEMP B-TREE FOR ORDER BY"
+            }
+          ]
+        },
+        "fixed": {
+          "label": "fixed",
+          "bun": "1.4.4",
+          "rows": 12000,
+          "pageSize": 50,
+          "deepOffset": 6000,
+          "rounds": 5,
+          "firstMs": [
+            19.363700999999992,
+            19.78578299999998,
+            18.51088900000002,
+            18.121817999999962,
+            19.04421099999996
+          ],
+          "deepMs": [
+            24.046637000000032,
+            25.00637999999998,
+            23.63767900000005,
+            27.840212000000008,
+            23.33964900000001
+          ],
+          "firstMedianMs": 19.04421099999996,
+          "deepMedianMs": 24.046637000000032,
+          "seedMs": 92.980646,
+          "reopenMs": 9.649705000000012,
+          "firstDigest": "809e4086b6e13e5cc4450d1819865655e4b95c9ff6d5e7b692162aba6d8ce6fc",
+          "deepDigest": "244a2e6427a93d76de85ff64d8c92c8a1281004368e00c06431e16b4ebf7b45c",
+          "firstCount": 50,
+          "deepCount": 50,
+          "plan": [
+            {
+              "id": 9,
+              "parent": 0,
+              "notused": 61,
+              "detail": "SEARCH up USING INDEX idx_user_prompts_claude_session (content_session_id=?)"
+            },
+            {
+              "id": 17,
+              "parent": 0,
+              "notused": 0,
+              "detail": "CORRELATED SCALAR SUBQUERY 1"
+            },
+            {
+              "id": 24,
+              "parent": 17,
+              "notused": 48,
+              "detail": "SEARCH duplicate USING INDEX idx_user_prompts_legacy_window (session_db_id=? AND created_at_epoch>? AND created_at_epoch<?)"
+            },
+            {
+              "id": 53,
+              "parent": 0,
+              "notused": 45,
+              "detail": "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)"
+            },
+            {
+              "id": 76,
+              "parent": 0,
+              "notused": 0,
+              "detail": "USE TEMP B-TREE FOR ORDER BY"
+            }
+          ]
+        },
+        "deepRatio": 632.0093349435922
+      }
     }
   ],
-  "status_as_of": "2026-11-11T16:05:37.447Z",
+  "status_as_of": "2026-11-11T16:12:46Z",
   "notes": "Actual PR ledger; an open PR is not a merge. Validation details and original failure records remain in each PR body."
 }
