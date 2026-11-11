@@ -47,7 +47,8 @@ export function accumulateObserverUsage(session: ActiveSession, sample: Observer
 }
 
 /**
- * Fold one Claude SDK assistant-message usage block into the session counters.
+ * Fold one Claude SDK step's usage block into the session counters.
+ * The caller deduplicates repeated content-block frames by message ID.
  *
  * Cache reads are tracked in their own counter rather than added to
  * cumulativeInputTokens: discovery_tokens is derived from the delta of

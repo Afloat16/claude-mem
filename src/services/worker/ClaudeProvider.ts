@@ -540,6 +540,10 @@ export class ClaudeProvider {
       // stored discovery_tokens miss the input; the turn's result message
       // carries the real usage, applied at the turn boundary below.
       let turnReportedInput = false;
+      // The SDK emits one frame per content block, repeating the step's usage
+      // under message.id. Count the step once without skipping any content;
+      // release its IDs at the result boundary instead of retaining session history.
+      const turnUsageMessageIds = new Set<string>();
       let turnInsertedObservationIds: number[] = [];
       let turnSummaryId: number | null = null;
       // The MEMORY_ID_CAPTURED/CHANGED line is a spawn-health signal for log
@@ -681,8 +685,12 @@ export class ClaudeProvider {
 
           const usage = message.message.usage;
           if (usage) {
-            accumulateClaudeUsage(session, usage);
-            if (computeFullContextTokens(usage) > 0) turnReportedInput = true;
+            const usageMessageId = typeof message.message.id === 'string' ? message.message.id : '';
+            if (!usageMessageId || !turnUsageMessageIds.has(usageMessageId)) {
+              accumulateClaudeUsage(session, usage);
+              if (usageMessageId) turnUsageMessageIds.add(usageMessageId);
+              if (computeFullContextTokens(usage) > 0) turnReportedInput = true;
+            }
 
             // Real per-response usage for telemetry (tokens_input includes the
             // full context the model read: fresh + cache writes + cache reads).
@@ -833,6 +841,7 @@ export class ClaudeProvider {
               }
             }
           }
+          turnUsageMessageIds.clear();
           turnReportedInput = false;
           turnInsertedObservationIds = [];
           turnSummaryId = null;
