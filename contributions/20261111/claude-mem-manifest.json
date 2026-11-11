@@ -357,8 +357,40 @@
       "mergeable": false,
       "created_at": "2026-11-11T15:26:36Z",
       "updated_at": "2026-11-11T15:26:36Z"
+    },
+    {
+      "number": 6006,
+      "url": "https://github.com/thedotmack/claude-mem/pull/6006",
+      "title": "fix(context): refresh cached labels after discovery usage settles",
+      "body": "## Problem\n\nA Claude result can backfill `discovery_tokens` after its assistant frame has already stored observations and a context block has been cached. `updateDiscoveryTokens` corrects SQLite and marks changed rows for sync, but does not notify the context cache. The agent's full-observation label and the human timeline therefore keep the initial token count while a fresh render shows the completed usage.\n\nThe regression records 40 tokens, caches the actual context, then corrects the same observation to 4,096. Unchanged main continues serving 40 in all three affected cases: agent output, human output and a partially adopted observation under another project.\n\n## Changes\n\nCollect the affected project keys from observation rows whose stored usage actually changes, then emit one existing context-invalidation event after the transaction commits. Include both the original project and `merged_into_project`: a partial adoption intentionally does not promote its whole source project into the recipient's read scope.\n\nKeep no-op and missing-ID updates out of the render queue, deduplicate repeated IDs/project keys, and do not emit if the transaction rolls back. Summary-only corrections retain their existing monotonic update behavior without scheduling an observation-label render.\n\nThis is the local context-cache consumer of the late usage write. #5701 addresses sync revisions for that write, while #3668 introduces the gateway usage backfill. Their sync and usage behavior is retained.\n\n## Validation\n\nBase: `308a9ab4a141ac49ca0e72bbccc0c9cdf3770ca0`.\nHead: `852f52d4542223b9b09783995494d36996e5d529`.\n\n[Fixed-SHA comparison](https://github.com/Afloat16/billion-context/actions/runs/43047449842), Bun 1.4.4 / Node 20:\n\n- [Unchanged main plus identical tests](https://github.com/Afloat16/billion-context/actions/runs/43047449842/job/130615067564): **3 fail, 2 pass**. The cached labels still show 40 while SQLite and the direct production render show 4,096; no-op and rollback controls pass.\n- [Fixed head](https://github.com/Afloat16/billion-context/actions/runs/43047449842/job/130615068107): **5 pass / 36 assertions**.\n- Existing context-cache, transactional storage, import identity, Claude usage-backfill and cloud-sync suites: **165 pass / 787 assertions across 9 files**.\n- Root and viewer TypeScript, all shipped bundles, test-lane ownership and `git diff --check` pass.\n\nThe new tests use owned SQLite files in isolated subprocesses, the real `SessionStore`, bundled mode, `generateContextWithStats`, `ContextCacheService` and hook cache reader. They assert exact cached-versus-live output, one scoped render, unchanged unrelated cache, commit-before-notification, a real SQLite ABORT rollback, and a partial adoption whose read keys still exclude the source project.\n\nCommands: `bun test tests/context/discovery-usage-cache.test.ts --timeout 30000`; `bun test tests/context/context-cache*.test.ts tests/sqlite/session-store-transactions.test.ts tests/sqlite/import-row-identities.test.ts tests/worker/claude-provider-discovery-backfill.test.ts tests/worker/sync/cloud-sync.test.ts --timeout 30000`; `npm run typecheck`; `node scripts/build-hooks.js`; `bun scripts/test-lanes.ts check`.\n\nThis corrects displayed observation work-token labels when that setting is enabled; it makes no new aggregate savings or billing claim.\n",
+      "head": "fix/discovery-usage-context-cache-20261111",
+      "commit": "852f52d4542223b9b09783995494d36996e5d529",
+      "base": "main",
+      "base_sha": "308a9ab4a141ac49ca0e72bbccc0c9cdf3770ca0",
+      "state": "open",
+      "merged": false,
+      "mergeable": false,
+      "created_at": "2026-11-11T15:27:49Z",
+      "updated_at": "2026-11-11T15:27:49Z",
+      "validation_history": [
+        {
+          "run": "https://github.com/Afloat16/billion-context/actions/runs/43045189050",
+          "head": "28ca4cafa441316af43754dfb1b93c1ac1199423",
+          "result": "Both fixtures failed before rendering: bundled mode was not initialized. Not counted as product negative-control evidence."
+        },
+        {
+          "run": "https://github.com/Afloat16/billion-context/actions/runs/43046461622",
+          "head": "72ce4373dfa692d5ff107b0f748671db701e7ca8",
+          "result": "After fixture initialization, fixed candidate 4 pass / 1 fail: partial adoption still served 40 instead of 4096. Resolved by including merged_into_project in invalidation scope."
+        },
+        {
+          "run": "https://github.com/Afloat16/billion-context/actions/runs/43047449842",
+          "head": "852f52d4542223b9b09783995494d36996e5d529",
+          "result": "Final actual baseline 3 fail / 2 pass; fixed 5 pass / 36 assertions; 165 related pass / 787 assertions; all type/build/lane/patch gates pass."
+        }
+      ]
     }
   ],
-  "status_as_of": "2026-11-11T15:26:36Z",
+  "status_as_of": "2026-11-11T15:27:49Z",
   "notes": "Actual PR ledger; an open PR is not a merge. Validation details and original failure records remain in each PR body."
 }
