@@ -683,16 +683,16 @@
       "number": 6015,
       "url": "https://github.com/thedotmack/claude-mem/pull/6015",
       "title": "fix(smart-read): retain C and C++ header function declarations",
-      "body": "## Problem\n\nThe native C and C++ queries capture function definitions, but omit function declarations. A header containing public API prototypes therefore has no callable symbols to search or unfold, including declarations inside a C++ namespace or class.\n\n## Change\n\n- Associate each declaration's native declarator with its function name, including pointer/reference returns and multiple declarators in one statement.\n- Exclude names inside parameter lists and initializers so callback parameters and function-pointer variables do not become standalone APIs. The exclusion pass sweeps sorted ranges rather than comparing every declaration with every parameter list.\n- Keep the existing bare symbol name when it is unambiguous. When sibling names collide, only the new declarations gain their native parameter/qualifier spelling, such as `tally(double count)` or `size() const`. Existing function definitions retain their bare names, so a preceding prototype cannot take over their old unfold lookup.\n- Retain the complete multiline declaration, documentation, template header, and nearest namespace/class ownership.\n\nThis covers the declaration forms exercised below; it does not claim complete support for every C++ declarator form. Existing definition naming and the generic qualified-name/unfold lookup are unchanged.\n\n## Validation\n\n[Fixed-SHA native comparison and complete gates](https://github.com/Afloat16/billion-context/actions/runs/43060095408/job/130659977325), Bun 1.4.4 and actual Tree-sitter CLI 0.26.13:\n\n- Both checked-in header fixtures compile with GCC/G++ 15.2.0 using `-std=c11` / `-std=c++17`, `-Wall -Werror -fsyntax-only`.\n- Unchanged main `308a9ab` plus the tests (`bd4fd2f8`): **6 fail, 2 pass, 13 assertions**. Missing header APIs fail; existing function bodies and non-function controls pass.\n- Fixed head `9e941201ada6097f11f124390abea02e03239f17`: **8 pass, 35 assertions**.\n- Regressions exercise ordinary prototypes, deep pointer and reference returns, functions returning function pointers, callback parameters, multiple declarators, constructor/destructor/operator members, const overloads, templates with multiline/trailing return types, C language linkage, and real batched search followed by qualified unfolding. Typedefs and function-pointer variables remain excluded.\n- Entire native smart-file suite: **285 pass, 952 assertions across 62 files**, including the eight new cases.\n- Root/viewer TypeScript, all shipped bundles, test-lane ownership, and `git diff --check` pass. Existing advisory bundle-size warnings remain visible in the log.\n\n## Related history\n\nChecked all 64 commits for the parser and the all-state prototype/declarator/header PR searches. #4435 provides the existing C/C++ definition queries, and #4482 provides namespace ownership; this adds the missing declaration path while retaining those behaviors.",
+      "body": "## Problem\n\nThe native C and C++ queries capture function definitions, but omit function declarations. A header containing public API prototypes therefore has no callable symbols to search or unfold, including declarations inside a C++ namespace or class.\n\n## Change\n\n- Associate each declaration's native declarator with its function name, including pointer/reference returns and multiple declarators in one statement.\n- Exclude names inside parameter lists and initializers so callback parameters and function-pointer variables do not become standalone APIs. The exclusion pass sweeps sorted ranges rather than comparing every declaration with every parameter list.\n- Keep the existing bare symbol name when it is unambiguous. When sibling names collide, only the new declarations gain their native parameter/qualifier spelling, such as `tally(double count)` or `size() const`. Existing function definitions retain their bare names, so a preceding prototype cannot take over their old unfold lookup.\n- Retain the complete multiline declaration, documentation, template header, and nearest namespace/class ownership.\n\nThis covers the declaration forms exercised below; it does not claim complete support for every C++ declarator form. Existing definition naming and the generic qualified-name/unfold lookup are unchanged.\n\n## Validation\n\n[Fixed-SHA native comparison and complete gates](https://github.com/Afloat16/billion-context/actions/runs/43060095408/job/130659977325), Bun 1.4.4 and actual Tree-sitter CLI 0.26.13:\n\n- Both checked-in header fixtures compile with GCC/G++ 15.2.0 using `-std=c11` / `-std=c++17`, `-Wall -Werror -fsyntax-only`.\n- Unchanged main `308a9ab` plus the tests (`bd4fd2f8`): **6 fail, 2 pass, 13 assertions**. Missing header APIs fail; existing function bodies and non-function controls pass.\n- Fixed head `9e941201ada6097f11f124390abea02e03239f17`: **8 pass, 35 assertions**.\n- Regressions exercise ordinary prototypes, deep pointer and reference returns, functions returning function pointers, callback parameters, multiple declarators, constructor/destructor/operator members, const overloads, templates with multiline/trailing return types, C language linkage, and real batched search followed by qualified unfolding. Typedefs and function-pointer variables remain excluded.\n- Entire native smart-file suite: **285 pass, 952 assertions across 62 files**, including the eight new cases.\n- Root/viewer TypeScript, all shipped bundles, test-lane ownership, and `git diff --check` pass. Existing advisory bundle-size warnings remain visible in the log.\n\n## Related history\n\nChecked all 64 commits for the parser and the all-state prototype/declarator/header PR searches. #4435 provides the existing C/C++ definition queries, and #4482 provides namespace ownership; this adds the missing declaration path while retaining those behaviors.\n\n## Review follow-up: template documentation\n\nAddressed the [template-comment review](https://github.com/thedotmack/claude-mem/pull/6015#discussion_r4540717605) in `ea4d249dbe133d6c65de5f782547402bfd221c4f`. The comment lookup for a C/C++ declaration now starts at the same captured template header used by its source range and signature. Other declaration kinds retain their existing comment lookup.\n\nThe new regression searches for a word present only in the template's documentation, then checks the returned qualified symbol, the documentation match reason, and the exact template start row.\n\n[Fixed-SHA review comparison](https://github.com/Afloat16/billion-context/actions/runs/43063334644/job/130671518199):\n\n- Previous PR production `9e941201` plus the new regression (`8f1548e7`): **8 pass, 1 fail, 36 assertions**; the comment-only search returns no symbol.\n- Updated head `ea4d249d`: **9 pass, 39 assertions**.\n- Entire native smart-file suite: **286 pass, 956 assertions across 62 files**.\n- Both header fixtures compile with the actual C/C++ compilers; root/viewer TypeScript, all shipped bundles, lane ownership and the patch whitespace gate pass.\n\nThe earlier `9e941201` results above remain the record of the original eight-case validation.\n",
       "head": "fix/c-cpp-function-declarations-20261111",
-      "commit": "9e941201ada6097f11f124390abea02e03239f17",
+      "commit": "ea4d249dbe133d6c65de5f782547402bfd221c4f",
       "base": "main",
       "base_sha": "308a9ab4a141ac49ca0e72bbccc0c9cdf3770ca0",
       "state": "open",
       "merged": false,
-      "mergeable": true,
+      "mergeable": null,
       "created_at": "2026-11-11T16:46:38Z",
-      "updated_at": "2026-11-11T16:46:38Z",
+      "updated_at": "2026-11-11T17:01:41Z",
       "validation_history": [
         {
           "run_url": "https://github.com/Afloat16/billion-context/actions/runs/43060095408",
@@ -706,10 +706,27 @@
           "related": "285 pass, 952 assertions across 62 files including focused cases",
           "runtime": "Bun1.4.4, actual Tree-sitter CLI0.26.13; GCC/G++15.2.0 C11/C++17 fixtures with -Wall -Werror -fsyntax-only",
           "gates": "root/viewer TypeScript, all bundles, lane ownership and diff check pass"
+        },
+        {
+          "run_url": "https://github.com/Afloat16/billion-context/actions/runs/43063334644",
+          "job_url": "https://github.com/Afloat16/billion-context/actions/runs/43063334644/job/130671518199",
+          "head": "ea4d249dbe133d6c65de5f782547402bfd221c4f",
+          "baseline_production": "9e941201ada6097f11f124390abea02e03239f17",
+          "test_only_baseline": "8f1548e7f69d7ed2442e50dd42cc4777485e9174",
+          "conclusion": "success",
+          "baseline": "8 pass, 1 fail, 36 assertions; comment-only search found no symbol",
+          "focused": "9 pass, 39 assertions",
+          "related": "286 pass, 956 assertions across 62 files including focused tests",
+          "gates": "C/C++ syntax compilation, root/viewer TypeScript, all bundles, lane ownership, diff check"
         }
-      ]
+      ],
+      "review_followup": {
+        "comment_url": "https://github.com/thedotmack/claude-mem/pull/6015#discussion_r4540717605",
+        "topic": "Preserve searchable documentation above a C++ template declaration",
+        "head": "ea4d249dbe133d6c65de5f782547402bfd221c4f"
+      }
     }
   ],
-  "status_as_of": "2026-11-11T16:46:38Z",
+  "status_as_of": "2026-11-11T17:01:42.571Z",
   "notes": "Actual PR ledger; an open PR is not a merge. Validation details and original failure records remain in each PR body."
 }
