@@ -1,0 +1,71 @@
+name: Verify OpenMausBot contribution revisions
+on:
+  pull_request:
+    paths:
+      - .github/workflows/openmausbot-contributions-20261111.yml
+      - .github/scripts/openmausbot-fixture-check.py
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.repository == 'Afloat16/claude-mem'
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - name: 01-query-identifiers
+            sha: 0777bc145b1b1bab1f2c16127eab10987b0f4332
+            tests: server/mcp-shape-query.test.ts server/mcp-shape.test.ts server/mcp-gate.test.ts
+          - name: 02-memory-continuations
+            sha: 487bb5841788cfdfacf1caaa634c8d3755e96d67
+            tests: server/memory-entry-continuations.test.ts server/memory-entries.test.ts server/memory-upkeep.test.ts
+          - name: 03-fleet-response
+            sha: 1b297183b9e529233ad6c99e853559c00d99f25c
+            tests: server/fleet-client.test.ts
+          - name: 04-health-json
+            sha: 8862a905c3305491860d50ae96a477096dd3dc48
+            tests: server/connection-outcome-json.test.ts server/connection-health.test.ts server/host/connection-health-host.test.ts
+          - name: 05-browser-size
+            sha: 3de4bee18e6467de67be68e981040c9c2769b56f
+            tests: server/browser-page-size-retry.test.ts server/browser-page-size.test.ts server/browser-runtime.test.ts server/browser-engine.test.ts
+          - name: 06-result-bytes
+            sha: 8fe3d015936bb340159dc121c656f9546b21f48d
+            tests: server/mcp-result-store-bytes.test.ts server/mcp-shape.test.ts server/mcp-gate.test.ts
+          - name: existing-pr-5085-raw-numbers
+            sha: 68f36e9e39482da0c889427e9a9856b9bacab69b
+            tests: server/connector-arguments.test.ts server/connector-proxy.test.ts
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      NODE_OPTIONS: --max-old-space-size=6144
+    defaults:
+      run:
+        working-directory: subject
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Afloat16/OpenMausBot
+          ref: ${{ matrix.sha }}
+          path: subject
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+          run_install: false
+      - name: Install exact lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Full renderer and server typecheck
+        run: pnpm typecheck
+      - name: Run contribution regressions and adjacent tests
+        run: node node_modules/vitest/vitest.mjs run ${{ matrix.tests }} --maxWorkers=1 --no-file-parallelism
+      - name: Launch isolated fixture and check doctor
+        run: python3 ../.github/scripts/openmausbot-fixture-check.py fixture-doctor.log
