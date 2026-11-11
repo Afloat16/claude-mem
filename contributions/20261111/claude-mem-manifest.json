@@ -1037,8 +1037,85 @@
           }
         ]
       }
+    },
+    {
+      "number": 6022,
+      "url": "https://github.com/thedotmack/claude-mem/pull/6022",
+      "title": "perf(work-view): reuse session prompt groups for request projection",
+      "body": "## Problem\n\nEvery `originalFor` call filters the complete prompt window before selecting one conversation's original request. `buildHumanRequests` calls it once per ungrouped conversation and again for each attached work item, even though the same function already groups those prompts by session for scope updates.\n\nWith the existing default reader bounds (600 conversations and 12,000 prompts), unrelated prompt rows are repeatedly inspected during a live My Work projection.\n\n## Change\n\nBuild the existing `promptsBySession` map before resolving originals and pass the relevant session's bucket to both calls. Keep `originalFor`'s strict session-ID filter, prompt ordering, initial-request fallback and text classification unchanged. The map is rebuilt for each snapshot; no cross-request cache or reader-limit change is introduced.\n\n## Validation\n\nThe [fixed-SHA comparison](https://github.com/Afloat16/billion-context/actions/runs/43068651605/job/130690302891) uses an actual migrated `SessionStore` SQLite database, the production `readAgentRecords` reader and `buildAgentView` projection.\n\n- Base `29f62ad423db16d581e8053d90f150471d5c3a17` plus regressions at `a90a9b602d90d58e0a43e6a46a923c413e79d6e7`: **2 semantic tests passed; 1 operation-budget test failed**. The latter measured 609,600 session-ID property reads for 2,000 actual SQLite prompt rows, 100 conversations and 200 work items. The complete projected object and attribution assertions passed before the budget assertion.\n- Fixed head `44b8e8c9ad5b2ef6e2c95ef3b05cc43a7f06cd11`: **3 passed, 44 assertions**. The operation budget stays below 40,000 reads without imposing a timing threshold.\n- All related worker work-view tests: **338 passed, 3,053 assertions across 46 files**, including grouping, explicit request identity, replica order, shared projections and product attribution.\n- Both root and viewer TypeScript checks, all shipped bundle/distribution builds, lane ownership and patch whitespace passed with Bun 1.4.4 and Node 20.\n\n### Measured default-window projection\n\nThe database contains 600 conversations with 20 interleaved prompts each and 300 observations. The default reader returns 12,000 prompts, producing 600 requests and 300 work items. After one warm-up, the script measures five calls to the full `buildAgentView` function; database setup, the initial SQL read and result serialization are outside those timings.\n\n| Revision | Five samples (ms) | Median (ms) |\n| --- | --- | --- |\n| Main | 54.116, 53.457, 47.641, 47.667, 61.932 | 53.457 |\n| Fixed | 28.531, 30.782, 20.173, 21.832, 19.937 | 21.832 |\n\nEach revision's five complete JSON results match its warm-up result, and `cmp` confirms byte-for-byte equality between revisions: **2,600,060 bytes**, SHA-256 `26854b43de3ec7ac4f704746c37e8305ea8c63570ae14690f5a4f5f27ffa5508`. The input records also remain unchanged. These numbers describe this bounded fixture, not every My Work workload.\n\nHistorical/current PR checks include #5834 (idle aggregate/UI work) and #5887 (product-file freshness); neither removes these repeated original-request scans. The subsequent main advances through `69ac66ac` contain integration documentation/examples only and leave this product path unchanged.\n",
+      "head": "perf/work-view-session-prompts-20261111",
+      "commit": "44b8e8c9ad5b2ef6e2c95ef3b05cc43a7f06cd11",
+      "base": "main",
+      "base_sha": "29f62ad423db16d581e8053d90f150471d5c3a17",
+      "state": "open",
+      "merged": false,
+      "mergeable": true,
+      "created_at": "2026-11-11T17:35:53Z",
+      "updated_at": "2026-11-11T17:35:53Z",
+      "validation_history": [
+        {
+          "run": 43068651605,
+          "job": 130690302891,
+          "url": "https://github.com/Afloat16/billion-context/actions/runs/43068651605/job/130690302891",
+          "conclusion": "success",
+          "baseline": "a90a9b602d90d58e0a43e6a46a923c413e79d6e7",
+          "head": "44b8e8c9ad5b2ef6e2c95ef3b05cc43a7f06cd11",
+          "baseline_result": {
+            "semantic_pass": 2,
+            "budget_fail": 1,
+            "assertions": 44,
+            "session_id_reads": 609600
+          },
+          "fixed_result": {
+            "pass": 3,
+            "fail": 0,
+            "assertions": 44
+          },
+          "related": {
+            "pass": 338,
+            "fail": 0,
+            "assertions": 3053,
+            "files": 46
+          },
+          "gates": [
+            "root/viewer TypeScript",
+            "all bundles/distribution",
+            "lane ownership",
+            "git diff --check"
+          ],
+          "benchmark": {
+            "sessions": 600,
+            "prompts": 12000,
+            "observations": 300,
+            "requests": 600,
+            "work_items": 300,
+            "warmups": 1,
+            "samples": 5,
+            "main_ms": [
+              54.116195000000005,
+              53.457314999999994,
+              47.64139899999998,
+              47.667327,
+              61.932375000000036
+            ],
+            "fixed_ms": [
+              28.531087000000014,
+              30.78241399999999,
+              20.172821,
+              21.83236800000003,
+              19.9366
+            ],
+            "main_median_ms": 53.457314999999994,
+            "fixed_median_ms": 21.83236800000003,
+            "output_bytes": 2600060,
+            "output_sha256": "26854b43de3ec7ac4f704746c37e8305ea8c63570ae14690f5a4f5f27ffa5508",
+            "complete_output_cmp": "identical",
+            "scope": "full buildAgentView projection, excludes fixture setup, initial SQL read and JSON serialization"
+          }
+        }
+      ]
     }
   ],
-  "status_as_of": "2026-11-11T17:29:48.101Z",
+  "status_as_of": "2026-11-11T17:36:13.398Z",
   "notes": "Actual PR ledger; an open PR is not a merge. Validation details and original failure records remain in each PR body."
 }
