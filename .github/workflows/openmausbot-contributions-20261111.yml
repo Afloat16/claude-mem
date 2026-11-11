@@ -1,5 +1,8 @@
 name: Verify OpenMausBot contribution revisions
 on:
+  push:
+    branches:
+      - validation/openmausbot-contributions-20261111
   pull_request:
     paths:
       - .github/workflows/openmausbot-contributions-20261111.yml
