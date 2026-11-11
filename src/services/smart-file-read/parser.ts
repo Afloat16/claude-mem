@@ -114,7 +114,16 @@ const QUERIES: Record<string, string> = {
 (method_definition name: [(property_identifier) (private_property_identifier) (string) (number) (computed_property_name)] @name) @method
 (abstract_method_signature name: [(property_identifier) (private_property_identifier) (string) (number) (computed_property_name)] @name) @method
 (public_field_definition name: (_) @name value: [(arrow_function) (function_expression) (generator_function)]) @method
-(public_field_definition name: (_) @name value: (parenthesized_expression [(arrow_function) (function_expression) (generator_function)])) @method
+(public_field_definition name: (_) @name value: [(parenthesized_expression) (as_expression) (satisfies_expression) (non_null_expression) (type_assertion) (instantiation_expression)] @callable_initializer) @method
+(lexical_declaration (variable_declarator name: (identifier) @name value: [(parenthesized_expression) (as_expression) (satisfies_expression) (non_null_expression) (type_assertion) (instantiation_expression)] @callable_initializer)) @const_func
+(variable_declaration (variable_declarator name: (identifier) @name value: [(parenthesized_expression) (as_expression) (satisfies_expression) (non_null_expression) (type_assertion) (instantiation_expression)] @callable_initializer)) @const_func
+(parenthesized_expression (expression) @wrapped_value) @transparent_value
+(as_expression (expression) @wrapped_value) @transparent_value
+(satisfies_expression (expression) @wrapped_value) @transparent_value
+(non_null_expression (expression) @wrapped_value) @transparent_value
+(type_assertion (expression) @wrapped_value) @transparent_value
+(instantiation_expression (expression) @wrapped_value) @transparent_value
+[(arrow_function) (function_expression) (generator_function)] @callable_value
 (interface_declaration name: (type_identifier) @name) @iface
 (type_alias_declaration name: (type_identifier) @name) @tdef
 (enum_declaration name: (identifier) @name) @enm
@@ -136,7 +145,11 @@ const QUERIES: Record<string, string> = {
 (class_declaration name: (identifier) @name) @cls
 (method_definition name: [(property_identifier) (private_property_identifier) (string) (number) (computed_property_name)] @name) @method
 (field_definition property: (_) @name value: [(arrow_function) (function_expression) (generator_function)]) @method
-(field_definition property: (_) @name value: (parenthesized_expression [(arrow_function) (function_expression) (generator_function)])) @method
+(field_definition property: (_) @name value: (parenthesized_expression) @callable_initializer) @method
+(lexical_declaration (variable_declarator name: (identifier) @name value: [(parenthesized_expression)] @callable_initializer)) @const_func
+(variable_declaration (variable_declarator name: (identifier) @name value: [(parenthesized_expression)] @callable_initializer)) @const_func
+(parenthesized_expression (expression) @wrapped_value) @transparent_value
+[(arrow_function) (function_expression) (generator_function)] @callable_value
 (import_statement) @imp
 (export_statement) @exp
 `,
@@ -789,10 +802,18 @@ function buildSymbols(matches: RawMatch[], lines: string[], language: string): {
   const implementedTraits = new Map<CodeSymbol, string>();
   const aliasedTypes = new Map<CodeSymbol, RawCapture>();
   const containers: Array<{ sym: CodeSymbol; range: RawCapture }> = [];
+  const rangeKey = (capture: RawCapture) =>
+    `${capture.startRow}:${capture.startCol}:${capture.endRow}:${capture.endCol}`;
+  const callableValues = new Set<string>();
+  const transparentValues = new Map<string, string>();
 
   for (const match of matches) {
+    const wrapper = match.captures.find(capture => capture.tag === "transparent_value");
+    const value = match.captures.find(capture => capture.tag === "wrapped_value");
+    if (wrapper && value) transparentValues.set(rangeKey(wrapper), rangeKey(value));
     for (const cap of match.captures) {
       if (cap.tag === "haskell_default") haskellDefaults.push(cap);
+      if (cap.tag === "callable_value") callableValues.add(rangeKey(cap));
       if (cap.tag === "exp") {
         exportRanges.push(cap);
       }
@@ -837,6 +858,23 @@ function buildSymbols(matches: RawMatch[], lines: string[], language: string): {
     }
   }
 
+  // Parentheses and TypeScript type-only wrappers preserve the value of their
+  // direct expression. Follow only those native edges to a function literal:
+  // a callback inside a call, object, sequence or conditional is not the value
+  // of the surrounding declaration. No source-text or callable-type guess.
+  const isWrappedCallable = (initializer: RawCapture): boolean => {
+    let key = rangeKey(initializer);
+    const visited = new Set<string>();
+    while (!callableValues.has(key)) {
+      if (visited.has(key)) return false;
+      visited.add(key);
+      const value = transparentValues.get(key);
+      if (!value) return false;
+      key = value;
+    }
+    return true;
+  };
+
   // Names are captured independently of the surrounding pointer/reference
   // wrappers. The first native function declarator inside a definition names
   // that function, before any callback parameters or nested definitions.
@@ -863,6 +901,8 @@ function buildSymbols(matches: RawMatch[], lines: string[], language: string): {
         ? findFunctionName(kindCapture)
         : undefined);
     if (!kindCapture) continue;
+    const initializer = match.captures.find(c => c.tag === "callable_initializer");
+    if (initializer && !isWrappedCallable(initializer)) continue;
     if (kindCapture.tag === "tdef" && goTypeGroups.has(
       `${kindCapture.startRow}:${kindCapture.startCol}:${kindCapture.endRow}:${kindCapture.endCol}`)) continue;
 
