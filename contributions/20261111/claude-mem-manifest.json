@@ -725,8 +725,182 @@
         "topic": "Preserve searchable documentation above a C++ template declaration",
         "head": "ea4d249dbe133d6c65de5f782547402bfd221c4f"
       }
+    },
+    {
+      "number": 6016,
+      "url": "https://github.com/thedotmack/claude-mem/pull/6016",
+      "title": "perf(memory): index native source fingerprint replay lookups",
+      "body": "## Problem\n\nAn exact native/file memory replay is checked inside `saveMemory`'s immediate write transaction. The lookup filters a project's observations with a guarded JSON expression, then applies the session's platform scope and returns the latest match. Without an expression index, replaying an older note scans the newer project history while holding that write transaction.\n\n## Change\n\nAdd an idempotent partial index on the existing lookup's project, guarded source-fingerprint expression, and descending observation ID. Rows whose guarded fingerprint is null do not occupy index entries. Initialization creates it after ensuring the metadata column exists, including when reopening an existing database.\n\nThe save query, transaction boundary, exact project spelling, normalized platform scope, most-recent match, and JSON comparison semantics are unchanged. Regressions use the real `SessionStore` and `saveMemory`, including malformed JSON, missing/non-string fields, metadata updates, deletion, and old database reopening. The old-schema media fixture drops the dependent index before removing the metadata column.\n\n## Measured result\n\n[Paired comparison](https://github.com/Afloat16/billion-context/actions/runs/43063107935/job/130670690019), Bun 1.4.4 with actual SQLite and the unchanged save API:\n\n- 100,000 observations in one project; the oldest 50 have distinct source fingerprints. The remaining rows alternate between null and unrelated JSON metadata.\n- Each sample performs 50 exact replay calls. One full warm-up precedes five measured samples.\n- Main production `308a9ab` (test-only commit `6f8a1b80`): **1138.380, 1136.405, 1157.217, 1115.613, 1123.431 ms**; median **1136.405 ms**.\n- Indexed production `e67d298c`: **0.517, 0.483, 0.461, 0.327, 0.329 ms**; median **0.461 ms**.\n- Every complete returned object matches, with SHA-256 `b76deba91bd926d751f7352d5278225968d54374472b3df5b24b63664bcb6ae6`. No replay writes a new observation.\n- The real query plan changes from project-only lookup to `idx_observations_source_fingerprint (project=? AND <expr>=?)`; the platform join remains.\n\nThis measures repeated old-note lookups in a concentrated synthetic history, not all save workloads.\n\n## Cost and final validation\n\nFinal head: `b6fcd8c2601c42754a7e473e41d5d88066542990`.\n\n[Final validation and allocation measurement](https://github.com/Afloat16/billion-context/actions/runs/43063977500/job/130673843710) confirms the production and regression-test bytes match the measured `e67d298c` revision; the final commit only adds benchmark allocation reporting.\n\n- Baseline regression: **4 semantic tests pass; 1 query-plan test fails**, 18 assertions. This is a query optimization, not a change to deduplication results.\n- Fixed regression: **5 pass, 19 assertions**.\n- Related memory, migration, HTTP, source-scoping and media projections: **141 pass, 678 assertions across 18 files**, including the five focused cases.\n- Root/viewer TypeScript, the full `npm run build` (all bundles and generated plugin dependency closure), lane ownership and `git diff --check` pass.\n- Reopening the 100,000-row database to create the index took **36.019 ms total** in the final run. Allocated SQLite pages increased by **one 4,096-byte page** for this 50-fingerprint fixture, measured with `page_count`, `freelist_count` and `page_size`, including WAL-backed allocation. The initial paired run's complete reopen times were 11.453 ms on main and 33.826 ms with the index.\n- The final five replay samples were **0.701, 0.643, 0.574, 0.523, 0.540 ms**, with the same full-result hash.\n\nThe index adds persistent storage proportional to indexed fingerprints and JSON-expression/index maintenance on observation writes. Existing databases pay the one-time scan when the index is first created.\n\n### Earlier validation setup failures\n\nThe paired run's measurements and focused checks passed, but its broader suite had three failures: the Codex hook requires the generated plugin dependencies, and two existing native-path fixtures assume the normal Claude config directory. The final run first reproduces those exact three failures on unchanged-main production (**20 pass, 3 fail**), then installs the normal build closure and runs the full related suite without the custom config override (**141 pass**). The earlier failed run remains linked above; no assertions were removed or weakened.\n\n## Related history\n\nChecked the save path's nine commits and all-state source-fingerprint/replay/index PR searches. Existing source scoping and explicit-note behavior remain intact; this adds the missing lookup index.\n",
+      "head": "perf/memory-replay-fingerprint-20261111",
+      "commit": "b6fcd8c2601c42754a7e473e41d5d88066542990",
+      "base": "main",
+      "base_sha": "308a9ab4a141ac49ca0e72bbccc0c9cdf3770ca0",
+      "state": "open",
+      "merged": false,
+      "mergeable": true,
+      "created_at": "2026-11-11T17:07:53Z",
+      "updated_at": "2026-11-11T17:07:53Z",
+      "validation_history": [
+        {
+          "run_url": "https://github.com/Afloat16/billion-context/actions/runs/43062945638",
+          "head": "e67d298cc5990648504c10edcc1a7fed407ab0b6",
+          "conclusion": "failure before scheduling",
+          "detail": "Carrier used runner.temp in unsupported job-level env; no jobs or product tests ran. Fixed by setting runtime paths in a runner step."
+        },
+        {
+          "run_url": "https://github.com/Afloat16/billion-context/actions/runs/43063107935",
+          "job_url": "https://github.com/Afloat16/billion-context/actions/runs/43063107935/job/130670690019",
+          "head": "e67d298cc5990648504c10edcc1a7fed407ab0b6",
+          "test_only_baseline": "6f8a1b80a50e3694d423ac9b90866d21cae393e6",
+          "conclusion": "failure",
+          "baseline": "4 semantic tests pass, 1 query-plan assertion fails, 18 assertions",
+          "focused": "5 pass, 19 assertions",
+          "paired_benchmark": [
+            {
+              "rowCount": 100000,
+              "replayCount": 50,
+              "warmups": 1,
+              "measuredRounds": 5,
+              "samplesMs": [
+                1138.379716,
+                1136.405472,
+                1157.216614,
+                1115.612583,
+                1123.4312790000013
+              ],
+              "medianMs": 1136.405472,
+              "resultHash": "b76deba91bd926d751f7352d5278225968d54374472b3df5b24b63664bcb6ae6",
+              "reopenMs": 11.452829000000065,
+              "databaseBytes": 52936704,
+              "plan": [
+                {
+                  "id": 7,
+                  "parent": 0,
+                  "notused": 61,
+                  "detail": "SEARCH o USING INDEX idx_observations_project (project=?)"
+                },
+                {
+                  "id": 22,
+                  "parent": 0,
+                  "notused": 46,
+                  "detail": "SEARCH s USING INDEX sqlite_autoindex_sdk_sessions_1 (memory_session_id=?) LEFT-JOIN"
+                }
+              ]
+            },
+            {
+              "rowCount": 100000,
+              "replayCount": 50,
+              "warmups": 1,
+              "measuredRounds": 5,
+              "samplesMs": [
+                0.5170190000001185,
+                0.4834379999999783,
+                0.4614559999999983,
+                0.3271830000001046,
+                0.32921600000008766
+              ],
+              "medianMs": 0.4614559999999983,
+              "resultHash": "b76deba91bd926d751f7352d5278225968d54374472b3df5b24b63664bcb6ae6",
+              "reopenMs": 33.82591600000001,
+              "databaseBytes": 52936704,
+              "plan": [
+                {
+                  "id": 7,
+                  "parent": 0,
+                  "notused": 60,
+                  "detail": "SEARCH o USING INDEX idx_observations_source_fingerprint (project=? AND <expr>=?)"
+                },
+                {
+                  "id": 16,
+                  "parent": 0,
+                  "notused": 46,
+                  "detail": "SEARCH s USING INDEX sqlite_autoindex_sdk_sessions_1 (memory_session_id=?) LEFT-JOIN"
+                }
+              ]
+            },
+            {
+              "equality": "all complete replay objects match",
+              "resultHash": "b76deba91bd926d751f7352d5278225968d54374472b3df5b24b63664bcb6ae6",
+              "baselineMs": [
+                1138.379716,
+                1136.405472,
+                1157.216614,
+                1115.612583,
+                1123.4312790000013
+              ],
+              "fixedMs": [
+                0.5170190000001185,
+                0.4834379999999783,
+                0.4614559999999983,
+                0.3271830000001046,
+                0.32921600000008766
+              ],
+              "baselineMedianMs": 1136.405472,
+              "fixedMedianMs": 0.4614559999999983,
+              "baselineReopenMs": 11.452829000000065,
+              "fixedReopenMs": 33.82591600000001
+            }
+          ],
+          "related": "138 pass, 3 fail, 658 assertions; missing plugin/node_modules and custom CLAUDE_CONFIG_DIR conflicting with two old fixtures; later reproduced on baseline",
+          "gates": "Typecheck/build skipped after related failures"
+        },
+        {
+          "run_url": "https://github.com/Afloat16/billion-context/actions/runs/43063977500",
+          "job_url": "https://github.com/Afloat16/billion-context/actions/runs/43063977500/job/130673843710",
+          "head": "b6fcd8c2601c42754a7e473e41d5d88066542990",
+          "conclusion": "success",
+          "setup_negative_control": "Same three old setup failures reproduced on unchanged-main production: 20 pass, 3 fail, 154 assertions across 2 files",
+          "focused": "5 pass, 19 assertions",
+          "related": "141 pass, 678 assertions across 18 files including focused cases",
+          "benchmark": {
+            "rowCount": 100000,
+            "replayCount": 50,
+            "warmups": 1,
+            "measuredRounds": 5,
+            "samplesMs": [
+              0.7012190000000373,
+              0.6432810000001155,
+              0.5739109999999528,
+              0.5226860000000215,
+              0.5403389999999035
+            ],
+            "medianMs": 0.5739109999999528,
+            "resultHash": "b76deba91bd926d751f7352d5278225968d54374472b3df5b24b63664bcb6ae6",
+            "reopenMs": 36.01872400000002,
+            "mainDatabaseFileBytes": 52936704,
+            "beforeReopen": {
+              "pageCount": 12924,
+              "freePages": 0,
+              "pageSize": 4096,
+              "allocatedBytes": 52936704
+            },
+            "afterReopen": {
+              "pageCount": 12925,
+              "freePages": 0,
+              "pageSize": 4096,
+              "allocatedBytes": 52940800
+            },
+            "allocatedBytesAddedOnReopen": 4096,
+            "plan": [
+              {
+                "id": 7,
+                "parent": 0,
+                "notused": 60,
+                "detail": "SEARCH o USING INDEX idx_observations_source_fingerprint (project=? AND <expr>=?)"
+              },
+              {
+                "id": 16,
+                "parent": 0,
+                "notused": 46,
+                "detail": "SEARCH s USING INDEX sqlite_autoindex_sdk_sessions_1 (memory_session_id=?) LEFT-JOIN"
+              }
+            ]
+          },
+          "gates": "Production and regression bytes identical to e67d298; root/viewer typecheck, npm run build including plugin dependency closure, lane ownership and diff check pass"
+        }
+      ]
     }
   ],
-  "status_as_of": "2026-11-11T17:01:42.571Z",
+  "status_as_of": "2026-11-11T17:08:21.018Z",
   "notes": "Actual PR ledger; an open PR is not a merge. Validation details and original failure records remain in each PR body."
 }
