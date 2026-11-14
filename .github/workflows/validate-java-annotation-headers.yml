@@ -1,0 +1,88 @@
+name: Verify Java annotation headers
+
+on:
+  push:
+    branches: [validation/java-annotation-headers-20261114]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+      NO_COLOR: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 5cb9884dfdacff9db20fb8dfcfe8f60a55716c38
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - name: Verify the exact candidate and parent
+        run: |
+          test "$(git rev-parse HEAD)" = 5cb9884dfdacff9db20fb8dfcfe8f60a55716c38
+          test "$(git rev-parse HEAD^)" = 6767e2355a84479e66767d1602908f361e8e8c35
+          test "$(git rev-parse HEAD^{tree})" = 76a4ac9537325e1dcc67cc958d980e916a9a51b6
+          git show --stat --oneline HEAD
+      - name: Install repository dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify native prerequisites
+        run: |
+          bun --version
+          node_modules/.bin/tree-sitter --version
+      - name: Reproduce the review on unchanged parent production code
+        env:
+          CLAUDE_MEM_DATA_DIR: ${{ runner.temp }}/claude6160-data
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, re, subprocess
+          path = Path('src/services/smart-file-read/parser.ts')
+          candidate = path.read_bytes()
+          parent = subprocess.check_output(['git', 'show', '6767e2355a84479e66767d1602908f361e8e8c35:src/services/smart-file-read/parser.ts'])
+          evidence = Path(os.environ['RUNNER_TEMP']) / 'claude6160-evidence'
+          evidence.mkdir(exist_ok=True)
+          try:
+              path.write_bytes(parent)
+              result = subprocess.run(['bun', 'test', './tests/services/smart-file-read/java-annotation-declarations.test.ts'], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+              text = re.sub(r'\x1b\[[0-9;]*m', '', result.stdout)
+              print(text)
+              (evidence / 'parent-regressions.log').write_text(text)
+              assert result.returncode != 0, 'Parent must fail the new regressions'
+              assert re.search(r'(?m)^\s*9 pass\s*$', text), 'Parent must retain all nine passing controls'
+              assert re.search(r'(?m)^\s*2 fail\s*$', text), 'Exactly the two annotation header cases must fail'
+              assert text.count('Received: "@Target("') == 2, 'Both failures must reproduce the truncated annotation header'
+          finally:
+              path.write_bytes(candidate)
+          subprocess.run(['git', 'diff', '--exit-code'], check=True)
+          PY
+      - name: Root and viewer TypeScript checks
+        run: npm run typecheck
+      - name: Full bundle build
+        run: npm run build
+      - name: Focused native Java, ownership, unfolding and signature tests
+        env:
+          CLAUDE_MEM_DATA_DIR: ${{ runner.temp }}/claude6160-data
+        run: |
+          bun test ./tests/services/smart-file-read/java-annotation-declarations.test.ts ./tests/services/smart-file-read/java-constructors.test.ts ./tests/services/smart-file-read/java-compact-constructors.test.ts ./tests/services/smart-file-read/java-records.test.ts ./tests/services/smart-file-read/interface-method-owners.test.ts ./tests/services/smart-file-read/qualified-unfold.test.ts ./tests/services/smart-file-read/native-signature-boundaries.test.ts ./tests/services/smart-file-read/symbol-signature-columns.test.ts
+          bun scripts/test-lanes.ts check
+      - name: Verify source bytes and restore generated build output
+        run: |
+          git diff --exit-code -- src tests scripts package.json
+          git restore --source=HEAD --worktree -- .
+          git diff --exit-code
+          git diff --check
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: java-annotation-parent-evidence
+          path: ${{ runner.temp }}/claude6160-evidence
+          if-no-files-found: ignore
