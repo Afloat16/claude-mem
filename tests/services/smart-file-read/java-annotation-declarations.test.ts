@@ -21,6 +21,43 @@ describe('Java annotation declarations', () => {
     expect(unfolded).not.toContain('class Adjacent');
   }, 120000);
 
+  for (const { label, header, signature } of [
+    {
+      label: 'an array-valued annotation',
+      header: '@Target({ElementType.TYPE})\npublic @interface Api',
+      signature: '@Target({ElementType.TYPE}) public @interface Api',
+    },
+    {
+      label: 'multiline annotation arguments',
+      header: '@Target({\n  ElementType.TYPE,\n  ElementType.METHOD\n})\n@Retention(RetentionPolicy.RUNTIME)\npublic @interface Api',
+      signature: '@Target({ ElementType.TYPE, ElementType.METHOD }) @Retention(RetentionPolicy.RUNTIME) public @interface Api',
+    },
+    {
+      label: 'an annotation after a Unicode prefix',
+      header: '/* 配置 😀 */ @Target({ElementType.TYPE}) public @interface Api',
+      signature: '@Target({ElementType.TYPE}) public @interface Api',
+    },
+  ]) {
+    test(`keeps the declaration header with ${label} in outlines and search`, async () => {
+      const source = `${header} {\n  String value();\n}\nclass Adjacent {}`;
+      const parsed = parseFile(source, 'Api.java');
+      expect(parsed.symbols[0].name).toBe('Api');
+      expect(parsed.symbols[0].signature).toBe(signature);
+      expect(parsed.symbols[0].children?.map(symbol => symbol.signature)).toEqual(['String value();']);
+      expect(formatFoldedView(parsed)).toContain(signature);
+      const unfolded = unfoldSymbol(source, 'Api.java', 'Api');
+      expect(unfolded).toContain('@Target({');
+      expect(unfolded).toContain('String value();');
+      expect(unfolded).not.toContain('class Adjacent');
+      const directory = mkdtempSync(join(tmpdir(), 'java-annotation-headers-'));
+      try {
+        writeFileSync(join(directory, 'Api.java'), source);
+        const result = await searchCodebase(directory, 'Api');
+        expect(result.matchingSymbols.find(symbol => symbol.symbolName === 'Api')?.signature).toBe(signature);
+      } finally { rmSync(directory, { recursive: true, force: true }); }
+    }, 120000);
+  }
+
   test('keeps element signatures including defaults containing braces and annotations', () => {
     const declarations = [
       'String value();',
